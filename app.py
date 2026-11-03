@@ -1,6 +1,7 @@
 from flask import Flask, jsonify, render_template_string
 import json
 import os
+import re
 import time
 import threading
 import urllib.request
@@ -51,7 +52,7 @@ def converter_api(payload):
         if fontes:
             resultado.append(dict(nome=canal['name'], categoria=canal.get('category', ''),
                                   tipo='live', logo=canal.get('logo_url', ''), fontes=fontes,
-                                  formato='embed', origem='rdc'))
+                                  formato='embed', origem='rdc', id=canal.get('id', '')))
     return resultado
 
 
@@ -85,6 +86,64 @@ def canais_externos():
         return jsonify(response)
 
 
+
+_epg_cache = {'until': 0, 'data': {}, 'available': False}
+_epg_lock = threading.Lock()
+
+
+def extrair_programacao(payload, agora):
+    if not isinstance(payload, dict) or payload.get('success') is not True or not isinstance(payload.get('data'), list):
+        raise ValueError('Programacao invalida')
+    resultado = {}
+    for canal in payload['data']:
+        if not isinstance(canal, dict):
+            continue
+        epg = canal.get('epg')
+        if not isinstance(epg, dict):
+            continue
+        atual = None
+        for campo in ('current', 'next'):
+            programa = epg.get(campo)
+            if not isinstance(programa, dict):
+                continue
+            inicio, fim = programa.get('start_time'), programa.get('end_time')
+            if isinstance(inicio, (int, float)) and isinstance(fim, (int, float)) and inicio <= agora < fim:
+                atual = dict(title=str(programa.get('title', '')), description=str(programa.get('description', '')),
+                             start_time=inicio, end_time=fim)
+                break
+        if atual:
+            chaves = [canal.get('id')]
+            for embed in canal.get('embeds', []) or []:
+                if isinstance(embed, dict) and isinstance(embed.get('embed_url'), str):
+                    chaves.append(urlsplit(embed['embed_url']).path.strip('/'))
+            for chave in chaves:
+                if isinstance(chave, str) and chave:
+                    resultado[chave] = atual
+    return resultado
+
+
+@app.route('/api/programacao')
+def programacao():
+    with _epg_lock:
+        if time.monotonic() >= _epg_cache['until']:
+            try:
+                with urllib.request.urlopen(RDC_API, timeout=5) as resposta:
+                    raw = resposta.read(5_000_001)
+                if len(raw) > 5_000_000:
+                    raise ValueError('Resposta muito grande')
+                dados = extrair_programacao(json.loads(raw), time.time())
+                _epg_cache.update(data=dados, available=True)
+            except Exception as erro:
+                app.logger.warning('Programacao indisponivel: %s', type(erro).__name__)
+                _epg_cache['available'] = False
+            _epg_cache['until'] = time.monotonic() + 60
+        agora = time.time()
+        atuais = {k: v for k, v in _epg_cache['data'].items() if v['start_time'] <= agora < v['end_time']}
+        resposta = jsonify(success=_epg_cache['available'], data=atuais)
+        resposta.headers['Cache-Control'] = 'no-store'
+        return resposta
+
+
 HTML_IBO_INTERFACE = r"""
 <!DOCTYPE html>
 <html lang="pt-BR">
@@ -92,7 +151,7 @@ HTML_IBO_INTERFACE = r"""
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>IBO IPTV Server</title>
-<script src="https://cdn.jsdelivr.net/npm/hls.js@1.6.13/dist/hls.min.js"></script>
+
 <style>
 body { font-family: 'Segoe UI', sans-serif; background: #080c14; color: #fff; margin: 0; padding: 20px; }
 .header { text-align: center; padding: 15px 0; border-bottom: 1px solid #1e293b; }
@@ -133,6 +192,14 @@ select, input { background: #1e293b; color: white; padding: 12px; border: 1px so
  .content-grid { grid-template-columns: repeat(5, 1fr); }
  .media-card h4 { font-size: 1.1rem; }
 }
+
+/* Flex and margins support older webOS browsers without CSS Grid or gap. */
+.ibo-dashboard, .content-grid { display: flex; flex-wrap: wrap; gap: 0; }
+.ibo-box { flex: 1 1 200px; margin: 10px; }
+.media-card { width: calc(25% - 20px); margin: 10px; }
+.ibo-box, video { box-shadow: none; transition: none; }
+.ibo-box:hover { transform: none; box-shadow: none; }
+@media(max-width:700px) { .media-card { width: calc(50% - 20px); } }
 </style>
 </head>
 <body>
@@ -153,6 +220,8 @@ select, input { background: #1e293b; color: white; padding: 12px; border: 1px so
 <a id="externalPlayerLink" target="_blank" rel="noopener noreferrer" style="display:none;color:#38bdf8">Abrir player no site de origem</a>
 <video id="mainVideoPlayer" controls playsinline></video>
 <h3 id="videoTitle" style="color:#38bdf8"></h3>
+<div id="programInfo" style="text-align:left;padding:16px;background:#141b2d;border-radius:8px;display:none" aria-live="polite"><strong id="programTitle"></strong><p id="programDescription"></p></div>
+<button class="back-btn" id="liveButton" onclick="voltarAoVivo()">↻ Voltar ao vivo</button>
 <p id="playerStatus" role="status" aria-live="polite"></p>
 </div>
 <div class="content-section" id="contentSection">
@@ -164,192 +233,252 @@ select, input { background: #1e293b; color: white; padding: 12px; border: 1px so
 <button class="back-btn" id="loadMore" style="display:none" onclick="maisCanais()">Mostrar mais</button>
 </div>
 <script>
-let bancoDados = {{ conteudo | tojson }};
-const el = id => document.getElementById(id);
-const video = el('mainVideoPlayer');
-let secaoAtual = '';
-let hls = null;
-let itemAtual = null;
-el('sourceSelect').addEventListener('change', () => reproduzirFonte(itemAtual, el('sourceSelect').value));
+
+var bancoDados = {{ conteudo | tojson }};
+function el(id) { return document.getElementById(id); }
+var video = el('mainVideoPlayer'), hls = null, itemAtual = null, secaoAtual = '';
+var limiteCanais = 24, externosCarregados = bancoDados.some(function (c) { return c.origem === 'rdc'; }), geracao = 0, epg = {}, epgBusy = false;
+function getJSON(url, done) {
+    var xhr = new XMLHttpRequest();
+    xhr.open('GET', url, true); xhr.timeout = 12000;
+    xhr.onload = function () {
+        try { if (xhr.status !== 200) throw new Error(); done(null, JSON.parse(xhr.responseText)); }
+        catch (e) { done(e); }
+    };
+    xhr.onerror = xhr.ontimeout = function () { done(new Error('Rede indisponível')); };
+    xhr.send();
+}
+function normalizar(nome) { return nome.toLowerCase().replace(/[^a-z0-9]/g, ''); }
+function endereco(fonte) {
+    var a = document.createElement('a');
+    if (typeof fonte !== 'string' || !/^https?:\/\//i.test(fonte)) return null;
+    a.href = fonte;
+    return a;
+}
 function limparPlayer() {
-    el('embedPlayer').src = 'about:blank';
-    el('embedPlayer').style.display = 'none';
-    el('externalPlayerLink').style.display = 'none';
-    el('externalPlayerLink').removeAttribute('href');
+    geracao++;
+    el('embedPlayer').src = 'about:blank'; el('embedPlayer').style.display = 'none';
+    el('externalPlayerLink').style.display = 'none'; el('externalPlayerLink').removeAttribute('href');
     video.style.display = 'block';
     if (hls) { hls.destroy(); hls = null; }
-    video.pause();
-    video.removeAttribute('src');
-    video.load();
+    video.pause(); video.removeAttribute('src'); video.load();
     el('playerStatus').textContent = '';
 }
-let externosCarregados = false;
-async function carregarExternos() {
+function carregarExternos() {
     if (externosCarregados) return;
     externosCarregados = true;
-    el('catalogStatus').textContent = 'Buscando catálogo externo…';
-    try {
-        const response = await fetch('/api/canais-externos');
-        if (!response.ok) throw new Error();
-        const result = await response.json();
-        if (!Array.isArray(result.data)) throw new Error();
-        const normalize = name => name.toLowerCase().replace(/[^a-z0-9]/g, '');
-        const nomes = new Set(result.data.map(item => normalize(item.nome)));
-        bancoDados = [...result.data, ...bancoDados.filter(item => item.tipo !== 'live' || !nomes.has(normalize(item.nome)))];
-        el('catalogStatus').textContent = result.success ? 'Players externos carregados.' : result.message;
+    el('catalogStatus').textContent = 'Carregando canais…';
+    getJSON('/api/canais-externos', function (erro, result) {
+        if (erro || !result || !Array.isArray(result.data)) {
+            el('catalogStatus').textContent = 'Usando catálogo local.'; externosCarregados = false; return;
+        }
+        var nomes = {};
+        result.data.forEach(function (c) { nomes[normalizar(c.nome)] = true; });
+        bancoDados = result.data.concat(bancoDados.filter(function (c) { return c.tipo !== 'live' || !nomes[normalizar(c.nome)]; }));
+        el('catalogStatus').textContent = result.success ? 'Canais carregados.' : 'Usando catálogo local.';
         if (secaoAtual === 'live' && el('contentSection').style.display === 'block') renderizarSecao('live');
-    } catch (_) {
-        el('catalogStatus').textContent = 'Catálogo externo indisponível. Os canais locais continuam disponíveis.';
-    }
+    });
 }
 function mostrarSecao(tipo) {
-    fecharPlayer();
-    secaoAtual = tipo;
-    el('mainDashboard').style.display = 'none';
-    el('contentSection').style.display = 'block';
-    el('sectionTitle').textContent = {live:'TV Ao Vivo', movie:'Filmes Anime', series:'Séries', anime:'Animes Hub'}[tipo];
-    limiteCanais = 48;
+    fecharPlayer(); secaoAtual = tipo; limiteCanais = 24;
     el('channelSearch').value = '';
-    renderizarSecao(tipo);
-    el('channelSearch').focus();
+    el('mainDashboard').style.display = 'none'; el('contentSection').style.display = 'block';
+    el('sectionTitle').textContent = {live:'TV Ao Vivo',movie:'Filmes Anime',series:'Séries',anime:'Animes Hub'}[tipo];
+    renderizarSecao(tipo); el('channelSearch').focus();
     if (tipo === 'live') carregarExternos();
 }
-let limiteCanais = 48;
-el('channelSearch').addEventListener('input', function () { limiteCanais = 48; renderizarSecao(secaoAtual); });
-function maisCanais() {
-    const anterior = limiteCanais;
-    limiteCanais += 48;
-    renderizarSecao(secaoAtual);
-    const botoes = el('contentGrid').querySelectorAll('button');
-    if (botoes[anterior]) botoes[anterior].focus();
-}
 function renderizarSecao(tipo) {
-    const grid = el('contentGrid');
+    var grid = el('contentGrid'), focused = document.activeElement;
+    var focusName = focused && focused.getAttribute('data-channel');
     grid.textContent = '';
-    const busca = el('channelSearch').value.toLowerCase().trim();
-    const itens = bancoDados.filter(item => item.tipo === tipo && item.nome.toLowerCase().includes(busca));
-    el('loadMore').style.display = itens.length > limiteCanais ? 'block' : 'none';
-    itens.slice(0, limiteCanais).forEach(item => {
-        const card = document.createElement('div'); card.className = 'media-card';
-        const img = document.createElement('img'); img.src = item.logo; img.alt = item.nome; img.loading = 'lazy';
-        const title = document.createElement('h4'); title.textContent = item.nome;
-        const button = document.createElement('button'); button.className = 'play-btn'; button.textContent = '▶ Assistir';
-        button.addEventListener('click', () => abrirPlayer(item));
-        card.appendChild(img); card.appendChild(title); card.appendChild(button); grid.appendChild(card);
+    var busca = el('channelSearch').value.toLowerCase().trim();
+    var itens = bancoDados.filter(function (c) { return c.tipo === tipo && c.nome.toLowerCase().indexOf(busca) >= 0; });
+    var fragment = document.createDocumentFragment();
+    itens.slice(0, limiteCanais).forEach(function (item) {
+        var card = document.createElement('div'); card.className = 'media-card';
+        var img = document.createElement('img'); img.alt = item.nome; img.loading = 'lazy';
+        img.width = 160; img.height = 150;
+        img.onerror = function () { this.style.display = 'none'; };
+        if (item.logo) img.src = item.logo;
+        var title = document.createElement('h4'); title.textContent = item.nome;
+        var button = document.createElement('button'); button.className = 'play-btn'; button.textContent = '▶ Assistir';
+        button.setAttribute('data-channel', item.nome);
+        button.onclick = function () { abrirPlayer(item); };
+        card.appendChild(img); card.appendChild(title); card.appendChild(button); fragment.appendChild(card);
     });
-    if (!grid.children.length) grid.textContent = 'Nenhum conteúdo nesta seção.';
+    grid.appendChild(fragment);
+    el('loadMore').style.display = itens.length > limiteCanais ? 'block' : 'none';
+    if (!itens.length) grid.textContent = 'Nenhum conteúdo encontrado.';
+    if (focusName) {
+        var buttons = grid.querySelectorAll('button');
+        for (var i = 0; i < buttons.length; i++) if (buttons[i].getAttribute('data-channel') === focusName) buttons[i].focus();
+    }
+}
+var buscaTimer;
+el('channelSearch').oninput = function () {
+    clearTimeout(buscaTimer);
+    buscaTimer = setTimeout(function () { limiteCanais = 24; renderizarSecao(secaoAtual); }, 180);
+};
+function maisCanais() {
+    var antes = limiteCanais; limiteCanais += 24; renderizarSecao(secaoAtual);
+    var buttons = el('contentGrid').querySelectorAll('button');
+    if (buttons[antes]) buttons[antes].focus();
 }
 function abrirPlayer(item) {
     itemAtual = item;
     el('videoPlayerContainer').style.display = 'block';
-    el('fullscreenButton').focus();
-    const fontes = Array.isArray(item.fontes) ? item.fontes : [item.fontes];
-    const select = el('sourceSelect');
-    select.textContent = '';
-    fontes.forEach((fonte, i) => {
-        const option = document.createElement('option');
-        option.value = fonte;
-        try { option.textContent = `Fonte ${i + 1} — ${new URL(fonte).hostname}`; }
-        catch (_) { option.textContent = `Fonte ${i + 1}`; }
+    var fontes = Array.isArray(item.fontes) ? item.fontes : [item.fontes];
+    var select = el('sourceSelect'); select.textContent = '';
+    fontes.forEach(function (fonte, i) {
+        var option = document.createElement('option'); option.value = fonte;
+        option.textContent = 'Fonte ' + (i + 1);
         select.appendChild(option);
     });
     reproduzirFonte(item, fontes[0]);
+    el('fullscreenButton').focus();
+    atualizarPrograma(); buscarProgramacao();
+}
+el('sourceSelect').onchange = function () {
+    if (itemAtual) { reproduzirFonte(itemAtual, this.value); atualizarPrograma(); }
+};
+function tentarPlay(token) {
+    var result = video.play();
+    if (result && result.catch) result.catch(function () {
+        if (token === geracao) el('playerStatus').textContent = 'Pressione Play para iniciar.';
+    });
 }
 function reproduzirFonte(item, fonte) {
     limparPlayer();
-    el('videoPlayerContainer').style.display = 'block';
-    el('videoTitle').textContent = item.nome;
-    let url;
-    try { url = new URL(fonte); if (!['http:', 'https:'].includes(url.protocol)) throw new Error(); }
-    catch (_) { el('playerStatus').textContent = 'URL de mídia inválida.'; return; }
-    // Explicit formato supports HLS endpoints without a .m3u8 extension.
+    var token = geracao, url = endereco(fonte);
+    el('videoPlayerContainer').style.display = 'block'; el('videoTitle').textContent = item.nome;
+    el('liveButton').style.display = item.tipo === 'live' ? 'inline-block' : 'none';
+    if (!url) { el('playerStatus').textContent = 'URL de mídia inválida.'; return; }
     if (location.protocol === 'https:' && url.protocol === 'http:') {
-        el('playerStatus').textContent = 'Esta fonte usa HTTP e pode ser bloqueada nesta página HTTPS. Selecione outra fonte.';
-        return;
+        el('playerStatus').textContent = 'Esta fonte HTTP não é compatível com a página HTTPS. Escolha outra fonte.'; return;
     }
     if (item.formato === 'embed') {
-        if (url.protocol !== 'https:' || url.hostname !== 'rdcanais.org' || url.username || url.password || (url.port && url.port !== '443')) {
-            el('playerStatus').textContent = 'Endereço de player não permitido.'; return;
+        if (!/^https:\/\/rdcanais\.org(?::443)?\//i.test(fonte)) {
+            el('playerStatus').textContent = 'Player não permitido.'; return;
         }
-        video.style.display = 'none';
-        el('embedPlayer').src = url.href;
-        el('embedPlayer').style.display = 'block';
-        el('externalPlayerLink').href = url.href;
-        el('externalPlayerLink').style.display = 'block';
-        el('playerStatus').textContent = 'Se o player não abrir aqui, use o link para o site de origem.';
-        el('videoPlayerContainer').scrollIntoView({behavior:'smooth'});
-        return;
+        video.style.display = 'none'; el('embedPlayer').src = fonte; el('embedPlayer').style.display = 'block';
+        el('externalPlayerLink').href = fonte; el('externalPlayerLink').style.display = 'block';
+        el('playerStatus').textContent = 'Se necessário, abra o player no site de origem.';
+    } else {
+        var isHls = /\.m3u8$/i.test(url.pathname) || item.formato === 'hls';
+        if (isHls && !video.canPlayType('application/vnd.apple.mpegurl')) {
+            iniciarHls(fonte, token);
+        } else { video.src = fonte; tentarPlay(token); }
     }
-    const isHls = /\.m3u8$/i.test(url.pathname) || item.formato === 'hls';
-    if (isHls && !video.canPlayType('application/vnd.apple.mpegurl')) {
-        if (!window.Hls || !Hls.isSupported()) {
-            el('playerStatus').textContent = 'Este navegador não oferece suporte a HLS.'; return;
+    el('videoPlayerContainer').scrollIntoView(true);
+}
+function iniciarHls(fonte, token) {
+    function start() {
+        if (token !== geracao) return;
+        if (!window.Hls || !window.Hls.isSupported()) {
+            el('playerStatus').textContent = 'HLS não suportado neste navegador. Tente outra fonte.'; return;
         }
-        hls = new Hls();
-        hls.on(Hls.Events.ERROR, (_, data) => {
-            if (data.fatal) {
-                el('playerStatus').textContent = 'Falha ao carregar HLS. Verifique o link e as permissões CORS da origem.';
-                hls.destroy(); hls = null;
+        var player = new window.Hls({lowLatencyMode:true, maxBufferLength:20, backBufferLength:10});
+        hls = player;
+        player.on(window.Hls.Events.ERROR, function (_, data) {
+            if (data.fatal && token === geracao) {
+                el('playerStatus').textContent = 'Falha na transmissão. Tente outra fonte.';
+                player.destroy(); if (hls === player) hls = null;
             }
         });
-        hls.loadSource(url.href); hls.attachMedia(video);
-    } else { video.src = url.href; }
-    video.play().catch(() => { el('playerStatus').textContent = 'Pressione Play para iniciar a reprodução.'; });
-    el('videoPlayerContainer').scrollIntoView({behavior:'smooth'});
+        player.on(window.Hls.Events.MANIFEST_PARSED, function () { if (token === geracao) tentarPlay(token); });
+        player.loadSource(fonte); player.attachMedia(video);
+    }
+    if (window.Hls) { start(); return; }
+    var script = document.createElement('script');
+    script.src = 'https://cdn.jsdelivr.net/npm/hls.js@1.6.13/dist/hls.min.js';
+    script.onload = start;
+    script.onerror = function () { if (token === geracao) el('playerStatus').textContent = 'Falha ao carregar o player HLS.'; };
+    document.head.appendChild(script);
 }
-video.addEventListener('error', () => {
-    if (video.getAttribute('src')) el('playerStatus').textContent = 'Não foi possível reproduzir. Verifique o link e o formato do vídeo.';
-});
-video.addEventListener('playing', () => { el('playerStatus').textContent = ''; });
-function fecharPlayer() { limparPlayer(); el('videoPlayerContainer').style.display = 'none'; if (el('contentSection').style.display === 'block') el('channelSearch').focus(); }
+function voltarAoVivo() {
+    if (!itemAtual) return;
+    if (itemAtual.formato === 'embed') {
+        reproduzirFonte(itemAtual, el('sourceSelect').value);
+        el('playerStatus').textContent = 'Player reiniciado. O atraso depende da transmissão de origem.';
+    } else if (video.seekable.length) {
+        video.currentTime = Math.max(video.seekable.start(video.seekable.length-1), video.seekable.end(video.seekable.length-1)-2);
+        tentarPlay(geracao);
+    }
+}
+function atualizarPrograma() {
+    var box = el('programInfo');
+    if (!itemAtual || itemAtual.tipo !== 'live' || el('videoPlayerContainer').style.display !== 'block') { box.style.display = 'none'; return; }
+    box.style.display = 'block';
+    var url = endereco(el('sourceSelect').value), key = url ? url.pathname.replace(/^\/+|\/+$/g, '') : '';
+    var programa = epg[key] || epg[itemAtual.id], agora = Date.now()/1000;
+    if (!programa || !(programa.start_time <= agora && agora < programa.end_time)) {
+        el('programTitle').textContent = 'Programação ao vivo indisponível';
+        el('programDescription').textContent = 'O provedor não informou o programa atual. A reprodução pode continuar normalmente.';
+        return;
+    }
+    el('programTitle').textContent = 'Agora: ' + programa.title;
+    el('programDescription').textContent = programa.description || '';
+}
+function buscarProgramacao() {
+    if (!itemAtual || itemAtual.tipo !== 'live' || document.hidden || epgBusy || el('videoPlayerContainer').style.display !== 'block') return;
+    epgBusy = true;
+    getJSON('/api/programacao', function (erro, result) {
+        epgBusy = false;
+        if (!erro && result && result.data) epg = result.data;
+        atualizarPrograma();
+    });
+}
+setInterval(buscarProgramacao, 60000);
+setInterval(atualizarPrograma, 15000);
+video.onerror = function () { if (video.getAttribute('src')) el('playerStatus').textContent = 'Falha ao reproduzir. Tente outra fonte.'; };
+video.onplaying = function () { el('playerStatus').textContent = ''; };
+function fecharPlayer() {
+    limparPlayer(); itemAtual = null; el('programInfo').style.display = 'none';
+    el('videoPlayerContainer').style.display = 'none';
+    if (el('contentSection').style.display === 'block') el('channelSearch').focus();
+}
 function voltarProPainel() {
-    fecharPlayer(); el('contentSection').style.display = 'none'; el('mainDashboard').style.display = 'grid';
+    fecharPlayer(); el('contentSection').style.display = 'none'; el('mainDashboard').style.display = 'flex';
     document.querySelector('.ibo-box').focus();
 }
-
 function telaCheia() {
-    const box = el('videoPlayerContainer');
-    if (document.fullscreenElement && document.exitFullscreen) {
-        document.exitFullscreen(); return;
+    var box = el('videoPlayerContainer');
+    if (document.fullscreenElement || document.webkitFullscreenElement) {
+        var exit = document.exitFullscreen || document.webkitExitFullscreen; if (exit) exit.call(document); return;
     }
-    if (box.requestFullscreen) {
-        const result = box.requestFullscreen();
-        if (result && result.catch) result.catch(function () { el('playerStatus').textContent = 'Use o botão de tela cheia do próprio player.'; });
-    } else {
-        el('playerStatus').textContent = 'Use o botão de tela cheia do próprio player.';
-    }
+    var enter = box.requestFullscreen || box.webkitRequestFullscreen;
+    if (enter) {
+        try { var result = enter.call(box); if (result && result.catch) result.catch(function () { el('playerStatus').textContent = 'Use a tela cheia do player.'; }); }
+        catch (_) { el('playerStatus').textContent = 'Use a tela cheia do player.'; }
+    } else el('playerStatus').textContent = 'Use a tela cheia do player.';
 }
-// Navigation only handles the parent page; embedded players own their controls.
 document.addEventListener('keydown', function (event) {
-    const active = document.activeElement;
-    const editing = active && (active.tagName === 'INPUT' || active.tagName === 'SELECT');
-    if (!editing && (event.key === 'Escape' || event.keyCode === 461)) {
+    var active = document.activeElement;
+    var editing = active && (active.tagName === 'INPUT' || active.tagName === 'SELECT');
+    var code = event.keyCode;
+    if (!editing && (code === 27 || code === 461)) {
         event.preventDefault();
         if (el('videoPlayerContainer').style.display === 'block') fecharPlayer(); else voltarProPainel();
         return;
     }
-    const direction = {ArrowLeft: [-1,0], ArrowRight:[1,0], ArrowUp:[0,-1], ArrowDown:[0,1]}[event.key];
+    var direction = {37:[-1,0],39:[1,0],38:[0,-1],40:[0,1]}[code];
     if (!direction || editing || (active && active.tagName === 'VIDEO')) return;
-    const candidates = Array.from(document.querySelectorAll('button, a[href], select, input, iframe, video')).filter(function (node) {
-        return !node.disabled && node.getClientRects().length && getComputedStyle(node).visibility !== 'hidden';
-    });
+    var nodes = document.querySelectorAll('button,a[href],select,input,iframe,video'), candidates = [], i;
+    for (i=0;i<nodes.length;i++) if (!nodes[i].disabled && nodes[i].getClientRects().length) candidates.push(nodes[i]);
     if (!candidates.length) return;
-    if (candidates.indexOf(active) < 0) { event.preventDefault(); candidates[0].focus(); return; }
-    const rect = active.getBoundingClientRect();
-    const x = rect.left + rect.width / 2, y = rect.top + rect.height / 2;
-    let best = null, score = Infinity;
+    if (candidates.indexOf(active)<0) { event.preventDefault(); candidates[0].focus(); return; }
+    var rect=active.getBoundingClientRect(), x=rect.left+rect.width/2, y=rect.top+rect.height/2, best=null, score=Infinity;
     candidates.forEach(function (node) {
-        if (node === active) return;
-        const r = node.getBoundingClientRect();
-        const dx = r.left + r.width/2 - x, dy = r.top + r.height/2 - y;
-        const forward = dx * direction[0] + dy * direction[1];
-        const sideways = Math.abs(dx * direction[1] + dy * direction[0]);
-        const value = forward + sideways * 3;
-        if (forward > 1 && value < score) { best = node; score = value; }
+        if (node===active) return;
+        var r=node.getBoundingClientRect(), dx=r.left+r.width/2-x, dy=r.top+r.height/2-y;
+        var forward=dx*direction[0]+dy*direction[1], sideways=Math.abs(dx*direction[1]+dy*direction[0]);
+        var value=forward+sideways*3;
+        if (forward>1 && value<score) {best=node;score=value;}
     });
-    if (best) { event.preventDefault(); best.focus(); best.scrollIntoView({block:'nearest'}); }
+    if (best) {event.preventDefault();best.focus();}
 });
 document.querySelector('.ibo-box').focus();
+
 </script>
 </body>
 </html>
@@ -358,7 +487,18 @@ document.querySelector('.ibo-box').focus();
 
 @app.route('/')
 def index():
-    return render_template_string(HTML_IBO_INTERFACE, conteudo=carregar_conteudo())
+    conteudo = carregar_conteudo()
+    snapshot = os.path.join(BASE_DIR, 'canais_api.json')
+    if os.path.exists(snapshot):
+        try:
+            with open(snapshot, encoding='utf-8') as arquivo:
+                externos = converter_api(json.load(arquivo))
+            normalizar = lambda nome: re.sub(r'[^a-z0-9]', '', nome.lower())
+            nomes = {normalizar(c['nome']) for c in externos}
+            conteudo = externos + [c for c in conteudo if c.get('tipo') != 'live' or normalizar(c['nome']) not in nomes]
+        except (ValueError, OSError, TypeError, KeyError):
+            app.logger.warning('Falha no catalogo local de players')
+    return render_template_string(HTML_IBO_INTERFACE, conteudo=conteudo)
 
 
 @app.route('/api/catalogo')
