@@ -1,4 +1,4 @@
-from flask import Flask, jsonify, render_template_string
+from flask import Flask, jsonify, render_template_string, request
 import json
 import os
 import sqlite3
@@ -224,6 +224,65 @@ def placares():
     return response
 
 
+
+JIKAN_IDS = {20, 1735, 11061, 136}
+_jikan_cache = {}
+_jikan_lock = threading.Lock()
+
+
+def jikan_get(anime_id, section, page=1):
+    if anime_id not in JIKAN_IDS or section not in ('episodes', 'streaming') or not 1 <= page <= 30:
+        return None
+    key = (anime_id, section, page)
+    now = time.monotonic()
+    with _jikan_lock:
+        entry = _jikan_cache.get(key)
+        if entry and now < entry['until']:
+            return entry['value']
+    url = 'https://api.jikan.moe/v4/anime/{}/{}'.format(anime_id, section)
+    if section == 'episodes':
+        url += '?page={}'.format(page)
+    try:
+        req = urllib.request.Request(url, headers={'User-Agent': 'NexoTV/1.0 (anime metadata)'})
+        with urllib.request.urlopen(req, timeout=6) as response:
+            raw = response.read(1_000_001)
+        if len(raw) > 1_000_000:
+            raise ValueError('Resposta muito grande')
+        payload = json.loads(raw)
+        if not isinstance(payload, dict) or not isinstance(payload.get('data'), list):
+            raise ValueError('Resposta inválida')
+        if section == 'episodes':
+            value = dict(success=True, data=[
+                dict(numero=ep.get('mal_id'), nome=ep.get('title') or 'Episódio {}'.format(ep.get('mal_id')),
+                     filler=bool(ep.get('filler'))) for ep in payload['data'] if isinstance(ep, dict)
+            ], has_next=bool(payload.get('pagination', {}).get('has_next_page')))
+        else:
+            value = dict(success=True, data=[
+                dict(nome=p.get('name', ''), url=p.get('url', '')) for p in payload['data']
+                if isinstance(p, dict) and isinstance(p.get('url'), str) and p['url'].startswith('https://')
+            ])
+        ttl = 86400
+    except Exception as error:
+        app.logger.warning('Metadados Jikan indisponíveis: %s', type(error).__name__)
+        value = dict(success=False, data=[], message='Lista indisponível agora. Tente novamente mais tarde.')
+        ttl = 300
+    with _jikan_lock:
+        _jikan_cache[key] = dict(value=value, until=time.monotonic()+ttl)
+    return value
+
+
+@app.route('/api/anime/<int:anime_id>/<section>')
+def anime_metadata(anime_id, section):
+    try:
+        page = int(request.args.get('page', '1'))
+    except ValueError:
+        page = 0
+    result = jikan_get(anime_id, section, page)
+    if result is None:
+        return jsonify(success=False, data=[], message='Consulta inválida.'), 404
+    return jsonify(result)
+
+
 HTML_IBO_INTERFACE = r"""
 <!DOCTYPE html>
 <html lang="pt-BR">
@@ -319,6 +378,14 @@ select, input { background: #1e293b; color: white; padding: 12px; border: 1px so
 <h2 id="sectionTitle" style="color:#38bdf8">Conteúdo</h2>
 <input id="channelSearch" type="search" placeholder="Buscar canal ou anime" aria-label="Buscar canal ou anime">
 <p id="catalogStatus" role="status"></p>
+<div id="animeDetails" style="display:none">
+<button class="back-btn" onclick="fecharListaEpisodios()">⬅ Voltar aos animes</button>
+<h2 id="animeDetailsTitle"></h2>
+<p id="animeDetailsStatus" role="status"></p>
+<div id="officialLinks"></div>
+<div id="episodeList" class="content-grid"></div>
+<button class="back-btn" id="nextEpisodes" style="display:none" onclick="proximaPaginaAnime()">Mais episódios</button>
+</div>
 <div class="content-grid" id="contentGrid"></div>
 <button class="back-btn" id="loadMore" style="display:none" onclick="maisCanais()">Mostrar mais</button>
 </div>
@@ -374,7 +441,7 @@ function mostrarSecao(tipo) {
     el('channelSearch').value = '';
     el('mainDashboard').style.display = 'none'; el('contentSection').style.display = 'block';
     el('sectionTitle').textContent = {live:'TV Ao Vivo',movie:'Filmes Anime',series:'Séries',anime:'Animes Hub'}[tipo];
-    renderizarSecao(tipo); el('channelSearch').focus();
+    fecharListaEpisodios(); renderizarSecao(tipo); el('channelSearch').focus();
     if (tipo === 'live') carregarExternos();
 }
 function renderizarSecao(tipo) {
@@ -394,10 +461,10 @@ function renderizarSecao(tipo) {
         var button = document.createElement('button'); button.className = 'play-btn';
         var episodios = Array.isArray(item.episodios) ? item.episodios : [];
         var temVideo = item.tipo === 'live' || episodios.some(function (ep) { return fonteValida(ep.url || ep.fontes); }) || fonteValida(item.fontes);
-        button.textContent = temVideo ? (episodios.length ? '▶ Episódios' : '▶ Assistir') : 'Vídeo pendente';
-        button.disabled = !temVideo;
+        button.textContent = item.jikan_id ? 'Ver episódios' : (temVideo ? (episodios.length ? '▶ Episódios' : '▶ Assistir') : 'Vídeo pendente');
+        button.disabled = !temVideo && !item.jikan_id;
         button.setAttribute('data-channel', item.nome);
-        button.onclick = function () { abrirPlayer(item); };
+        button.onclick = function () { if (item.jikan_id) abrirListaEpisodios(item); else abrirPlayer(item); };
         card.appendChild(img); card.appendChild(title); card.appendChild(button); fragment.appendChild(card);
     });
     grid.appendChild(fragment);
@@ -643,6 +710,67 @@ function buscarPlacares(manual) {
     });
 }
 setInterval(function () { buscarPlacares(false); }, 1200000);
+
+
+var animeSelecionado = null, paginaAnime = 1;
+function fecharListaEpisodios() {
+    animeSelecionado = null; el('animeDetails').style.display = 'none';
+    el('contentGrid').style.display = 'flex';
+    el('channelSearch').style.display = 'inline-block';
+    el('loadMore').style.display = 'none';
+    if (secaoAtual) renderizarSecao(secaoAtual);
+}
+function abrirListaEpisodios(item) {
+    animeSelecionado = item; paginaAnime = 1;
+    el('contentGrid').style.display = 'none'; el('channelSearch').style.display = 'none';
+    el('loadMore').style.display = 'none'; el('animeDetails').style.display = 'block';
+    el('animeDetailsTitle').textContent = item.nome;
+    el('episodeList').textContent = '';
+    el('animeDetailsStatus').textContent = 'Carregando episódios…';
+    el('officialLinks').textContent = '';
+    buscarPaginaAnime();
+    getJSON('/api/anime/' + item.jikan_id + '/streaming', function (error, result) {
+        if (animeSelecionado !== item || error || !result || !result.success) return;
+        var host = el('officialLinks');
+        result.data.forEach(function (entry) {
+            if (!/^https:\/\//i.test(entry.url)) return;
+            var link = document.createElement('a');
+            link.href = entry.url; link.target = '_blank'; link.rel = 'noopener noreferrer';
+            link.textContent = 'Onde assistir: ' + entry.nome;
+            link.style.display = 'block'; link.style.padding = '12px'; host.appendChild(link);
+        });
+    });
+}
+function buscarPaginaAnime() {
+    var item = animeSelecionado, page = paginaAnime;
+    if (!item) return;
+    el('nextEpisodes').style.display = 'none';
+    getJSON('/api/anime/' + item.jikan_id + '/episodes?page=' + page, function (error, result) {
+        if (animeSelecionado !== item || paginaAnime !== page) return;
+        if (error || !result || !result.success) {
+            el('animeDetailsStatus').textContent = 'Lista indisponível agora. Tente novamente mais tarde.';
+            return;
+        }
+        el('animeDetailsStatus').textContent = 'Dados dos episódios: Jikan. Vídeos disponíveis apenas quando cadastrados.';
+        var owned = Array.isArray(item.episodios) ? item.episodios : [];
+        var list = el('episodeList');
+        result.data.forEach(function (ep) {
+            var local = null;
+            owned.forEach(function (candidate) {
+                if (Number(candidate.numero) === Number(ep.numero) && fonteValida(candidate.url || candidate.fontes)) local = candidate;
+            });
+            var card = document.createElement('div'); card.className = 'media-card';
+            var title = document.createElement('h4');
+            title.textContent = 'Episódio ' + ep.numero + ' — ' + ep.nome + (ep.filler ? ' (filler)' : '');
+            var button = document.createElement('button'); button.className = 'play-btn';
+            button.textContent = local ? '▶ Assistir' : 'Vídeo pendente'; button.disabled = !local;
+            if (local) button.onclick = function () { abrirPlayer(item); var validos = owned.filter(function (candidate) { return fonteValida(candidate.url || candidate.fontes); }); el('episodeSelect').value = String(validos.indexOf(local)); abrirEpisodio(item, local); };
+            card.appendChild(title); card.appendChild(button); list.appendChild(card);
+        });
+        el('nextEpisodes').style.display = result.has_next ? 'inline-block' : 'none';
+    });
+}
+function proximaPaginaAnime() { paginaAnime++; buscarPaginaAnime(); }
 
 document.querySelector('.ibo-box').focus();
 
