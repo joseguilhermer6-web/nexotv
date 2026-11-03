@@ -12,3 +12,7 @@ Crie um Web Service conectado a este repositório, com runtime Python.
 Execução local: `pip install -r requirements.txt` e `python app.py`.
 
 O catálogo é lido da pasta do app. Edições em tempo de execução no disco efêmero da hospedagem não persistem em novos deploys.
+
+## Placar ao vivo
+
+No Render, em Environment, configure `API_FOOTBALL_KEY` com a chave da API-Football/API-Sports. Se a chave veio do RapidAPI, configure também `API_FOOTBALL_PROVIDER=rapidapi`. Não envie a chave ao GitHub. O botão **Carregar jogos e placares** aparece ao abrir um canal. Escolha manualmente a partida: o nome do programa e o canal não identificam o jogo com segurança. As consultas são compartilhadas entre visitantes e limitadas a uma por 20 minutos e 90 em qualquer janela de 24 horas por instância. O placar pode estar à frente do vídeo. O atraso da transmissão do player incorporado não pode ser medido pelo servidor Flask.
