@@ -294,7 +294,11 @@ select, input { background: #1e293b; color: white; padding: 12px; border: 1px so
 <div class="video-container" id="videoPlayerContainer">
 <button class="back-btn" onclick="fecharPlayer()">⬅ Fechar Transmissão</button>
 <button class="back-btn" id="fullscreenButton" onclick="telaCheia()">⛶ Tela cheia</button>
-<label for="sourceSelect">Fonte da transmissão:</label>
+<div id="episodePanel" style="display:none;text-align:left;padding:12px;background:#141b2d;border-radius:8px">
+<label for="episodeSelect">Episódio:</label>
+<select id="episodeSelect" style="width:100%"></select>
+</div>
+<label for="sourceSelect" id="sourceLabel">Fonte da transmissão:</label>
 <select id="sourceSelect" style="max-width:100%;margin:12px" aria-label="Fonte da transmissão"></select>
 <iframe id="embedPlayer" title="Player do canal" style="display:none;width:100%;aspect-ratio:16/9;border:0" allow="autoplay; fullscreen; picture-in-picture" allowfullscreen></iframe>
 <a id="externalPlayerLink" target="_blank" rel="noopener noreferrer" style="display:none;color:#38bdf8">Abrir player no site de origem</a>
@@ -385,9 +389,13 @@ function renderizarSecao(tipo) {
         var img = document.createElement('img'); img.alt = item.nome; img.loading = 'lazy';
         img.width = 160; img.height = 150;
         img.onerror = function () { this.style.display = 'none'; };
-        if (item.logo) img.src = item.logo;
+        if (item.logo && item.logo !== 'https://wikimedia.org') img.src = item.logo;
         var title = document.createElement('h4'); title.textContent = item.nome;
-        var button = document.createElement('button'); button.className = 'play-btn'; button.textContent = '▶ Assistir';
+        var button = document.createElement('button'); button.className = 'play-btn';
+        var episodios = Array.isArray(item.episodios) ? item.episodios : [];
+        var temVideo = item.tipo === 'live' || episodios.some(function (ep) { return fonteValida(ep.url || ep.fontes); }) || fonteValida(item.fontes);
+        button.textContent = temVideo ? (episodios.length ? '▶ Episódios' : '▶ Assistir') : 'Vídeo pendente';
+        button.disabled = !temVideo;
         button.setAttribute('data-channel', item.nome);
         button.onclick = function () { abrirPlayer(item); };
         card.appendChild(img); card.appendChild(title); card.appendChild(button); fragment.appendChild(card);
@@ -410,25 +418,54 @@ function maisCanais() {
     var buttons = el('contentGrid').querySelectorAll('button');
     if (buttons[antes]) buttons[antes].focus();
 }
+function fonteValida(fonte) {
+    if (Array.isArray(fonte)) return fonte.some(fonteValida);
+    return typeof fonte === 'string' && /^https?:\/\//i.test(fonte) &&
+        !/^https?:\/\/(googleapis\.com|jmvstream\.com|amazonaws\.com|cnnbrasil\.com)\/?$/i.test(fonte);
+}
 function abrirPlayer(item) {
     itemAtual = item;
     placarEscolhido = ''; el('scoreGame').value = '';
     el('scorePanel').style.display = item.tipo === 'live' ? 'block' : 'none';
     mostrarPlacar();
     el('videoPlayerContainer').style.display = 'block';
-    var fontes = Array.isArray(item.fontes) ? item.fontes : [item.fontes];
+    var episodes = Array.isArray(item.episodios) ? item.episodios.filter(function (ep) {
+        return fonteValida(ep.url || ep.fontes);
+    }) : [];
+    var select = el('episodeSelect'); select.textContent = '';
+    el('episodePanel').style.display = episodes.length ? 'block' : 'none';
+    episodes.forEach(function (ep, index) {
+        var option = document.createElement('option'); option.value = String(index);
+        option.textContent = (ep.arco ? ep.arco + ' — ' : '') + (ep.nome || 'Episódio ' + ep.numero);
+        select.appendChild(option);
+    });
+    if (episodes.length) {
+        select.onchange = function () { abrirEpisodio(item, episodes[Number(this.value)]); };
+        abrirEpisodio(item, episodes[0]);
+    } else {
+        preencherFontes(item, item.fontes, item.nome);
+    }
+    el('fullscreenButton').focus();
+    atualizarPrograma(); buscarProgramacao();
+}
+function abrirEpisodio(serie, episodio) {
+    if (!episodio) return;
+    var titulo = serie.nome + ' — ' + (episodio.nome || 'Episódio ' + episodio.numero);
+    preencherFontes(serie, episodio.fontes || episodio.url, titulo);
+}
+function preencherFontes(item, fontesOriginais, titulo) {
+    var fontes = Array.isArray(fontesOriginais) ? fontesOriginais : [fontesOriginais];
     var select = el('sourceSelect'); select.textContent = '';
     fontes.forEach(function (fonte, i) {
         var option = document.createElement('option'); option.value = fonte;
         option.textContent = 'Fonte ' + (i + 1);
         select.appendChild(option);
     });
-    reproduzirFonte(item, fontes[0]);
-    el('fullscreenButton').focus();
-    atualizarPrograma(); buscarProgramacao();
+    el('sourceLabel').textContent = item.tipo === 'live' ? 'Fonte da transmissão:' : 'Fonte do vídeo:';
+    reproduzirFonte(item, fontes[0], titulo);
 }
 el('sourceSelect').onchange = function () {
-    if (itemAtual) { reproduzirFonte(itemAtual, this.value); atualizarPrograma(); }
+    if (itemAtual) { reproduzirFonte(itemAtual, this.value, el('videoTitle').textContent); atualizarPrograma(); }
 };
 function tentarPlay(token) {
     var result = video.play();
@@ -436,10 +473,10 @@ function tentarPlay(token) {
         if (token === geracao) el('playerStatus').textContent = 'Pressione Play para iniciar.';
     });
 }
-function reproduzirFonte(item, fonte) {
+function reproduzirFonte(item, fonte, titulo) {
     limparPlayer();
     var token = geracao, url = endereco(fonte);
-    el('videoPlayerContainer').style.display = 'block'; el('videoTitle').textContent = item.nome;
+    el('videoPlayerContainer').style.display = 'block'; el('videoTitle').textContent = titulo || item.nome;
     el('liveButton').style.display = item.tipo === 'live' ? 'inline-block' : 'none';
     if (!url) { el('playerStatus').textContent = 'URL de mídia inválida.'; return; }
     if (location.protocol === 'https:' && url.protocol === 'http:') {
