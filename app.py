@@ -127,7 +127,7 @@ video { width: 100%; border-radius: 12px; border: 2px solid #38bdf8; background:
 <button class="back-btn" onclick="fecharPlayer()">⬅ Fechar Transmissão</button>
 <label for="sourceSelect">Fonte da transmissão:</label>
 <select id="sourceSelect" style="max-width:100%;margin:12px" aria-label="Fonte da transmissão"></select>
-<iframe id="embedPlayer" title="Player do canal" style="display:none;width:100%;aspect-ratio:16/9;border:0" sandbox="allow-scripts allow-same-origin allow-forms allow-presentation" allow="autoplay; fullscreen; picture-in-picture" allowfullscreen></iframe>
+<iframe id="embedPlayer" title="Player do canal" style="display:none;width:100%;aspect-ratio:16/9;border:0" allow="autoplay; fullscreen; picture-in-picture" allowfullscreen></iframe>
 <a id="externalPlayerLink" target="_blank" rel="noopener noreferrer" style="display:none;color:#38bdf8">Abrir player no site de origem</a>
 <video id="mainVideoPlayer" controls playsinline></video>
 <h3 id="videoTitle" style="color:#38bdf8"></h3>
