@@ -1,6 +1,7 @@
 from flask import Flask, jsonify, render_template_string
 import json
 import os
+import sqlite3
 import re
 import time
 import threading
@@ -144,6 +145,85 @@ def programacao():
         return resposta
 
 
+
+SCORE_DB = os.environ.get('SCORE_CACHE_PATH', '/tmp/nexotv-scores.sqlite3')
+SCORE_INTERVAL = 20 * 60
+
+
+def score_database():
+    db = sqlite3.connect(SCORE_DB, timeout=10)
+    db.execute('CREATE TABLE IF NOT EXISTS score_state (id INTEGER PRIMARY KEY, next_at REAL, payload TEXT)')
+    db.execute('CREATE TABLE IF NOT EXISTS score_requests (at REAL)')
+    db.commit()
+    return db
+
+
+@app.route('/api/placares')
+def placares():
+    key = os.environ.get('API_FOOTBALL_KEY', '').strip()
+    if not key:
+        return jsonify(success=False, data=[], message='Chave de placares não configurada.')
+    now = time.time()
+    db = score_database()
+    try:
+        db.execute('BEGIN IMMEDIATE')
+        row = db.execute('SELECT next_at, payload FROM score_state WHERE id=1').fetchone()
+        if row and now < row[0]:
+            db.commit()
+            return jsonify(json.loads(row[1]))
+        db.execute('DELETE FROM score_requests WHERE at <= ?', (now - 86400,))
+        used = db.execute('SELECT COUNT(*) FROM score_requests').fetchone()[0]
+        if used >= 90:
+            db.commit()
+            return jsonify(success=False, data=[], message='Limite de consultas reservado para hoje. Tente mais tarde.')
+        # Reserve before calling the provider, including failures. Shared across workers.
+        pending = dict(success=False, data=[], message='Consultando jogos. Aguarde alguns segundos.')
+        db.execute('INSERT INTO score_requests VALUES (?)', (now,))
+        db.execute('INSERT OR REPLACE INTO score_state VALUES (1, ?, ?)', (now + SCORE_INTERVAL, json.dumps(pending)))
+        db.commit()
+    finally:
+        db.close()
+    result = dict(success=False, data=[], message='Placares indisponíveis. A transmissão continua normalmente.')
+    try:
+        via_rapidapi = os.environ.get('API_FOOTBALL_PROVIDER', 'apisports').lower() == 'rapidapi'
+        host = 'api-football-v1.p.rapidapi.com' if via_rapidapi else 'v3.football.api-sports.io'
+        path = '/v3/fixtures?live=all' if via_rapidapi else '/fixtures?live=all'
+        headers = {'x-rapidapi-key': key, 'x-rapidapi-host': host} if via_rapidapi else {'x-apisports-key': key}
+        req = urllib.request.Request('https://' + host + path, headers=headers)
+        with urllib.request.urlopen(req, timeout=8) as response:
+            raw = response.read(5_000_001)
+        if len(raw) > 5_000_000:
+            raise ValueError('Resposta muito grande')
+        payload = json.loads(raw)
+        if not isinstance(payload, dict) or payload.get('errors') or not isinstance(payload.get('response'), list):
+            raise ValueError('Resposta de placares inválida')
+        games = []
+        for game in payload['response']:
+            try:
+                fixture, teams, goals = game['fixture'], game['teams'], game['goals']
+                status = fixture['status']
+                home, away = str(teams['home']['name']), str(teams['away']['name'])
+                games.append(dict(id=fixture['id'], home=home, away=away, home_goals=goals.get('home'),
+                                  away_goals=goals.get('away'), minute=status.get('elapsed'),
+                                  status=str(status.get('short', '')), league=str(game.get('league', {}).get('name', ''))))
+            except (KeyError, TypeError):
+                continue
+        result = dict(success=True, data=games, updated_at=time.time(),
+                      message='Atualização a cada 20 minutos. O placar pode estar à frente do vídeo.')
+    except Exception as error:
+        # Never log the request, headers, key, or provider response.
+        app.logger.warning('Falha nos placares: %s', type(error).__name__)
+    db = score_database()
+    try:
+        db.execute('UPDATE score_state SET payload=? WHERE id=1', (json.dumps(result),))
+        db.commit()
+    finally:
+        db.close()
+    response = jsonify(result)
+    response.headers['Cache-Control'] = 'no-store'
+    return response
+
+
 HTML_IBO_INTERFACE = r"""
 <!DOCTYPE html>
 <html lang="pt-BR">
@@ -221,6 +301,12 @@ select, input { background: #1e293b; color: white; padding: 12px; border: 1px so
 <video id="mainVideoPlayer" controls playsinline></video>
 <h3 id="videoTitle" style="color:#38bdf8"></h3>
 <div id="programInfo" style="text-align:left;padding:16px;background:#141b2d;border-radius:8px;display:none" aria-live="polite"><strong id="programTitle"></strong><p id="programDescription"></p></div>
+<div id="scorePanel" style="display:none;text-align:left;padding:16px">
+<button class="back-btn" onclick="buscarPlacares(true)">Carregar jogos e placares</button>
+<label for="scoreGame">Selecione a partida que está assistindo:</label>
+<select id="scoreGame" style="width:100%"><option value="">Escolher partida</option></select>
+<p id="scoreText" role="status">O placar pode estar à frente do vídeo. Atualização a cada 20 minutos.</p>
+</div>
 <button class="back-btn" id="liveButton" onclick="voltarAoVivo()">↻ Voltar ao vivo</button>
 <p id="playerStatus" role="status" aria-live="polite"></p>
 </div>
@@ -326,6 +412,9 @@ function maisCanais() {
 }
 function abrirPlayer(item) {
     itemAtual = item;
+    placarEscolhido = ''; el('scoreGame').value = '';
+    el('scorePanel').style.display = item.tipo === 'live' ? 'block' : 'none';
+    mostrarPlacar();
     el('videoPlayerContainer').style.display = 'block';
     var fontes = Array.isArray(item.fontes) ? item.fontes : [item.fontes];
     var select = el('sourceSelect'); select.textContent = '';
@@ -477,6 +566,46 @@ document.addEventListener('keydown', function (event) {
     });
     if (best) {event.preventDefault();best.focus();}
 });
+
+var jogosPlacar = [], placarEscolhido = '', placarAtualizado = 0, placarAtivo = false, placarOcupado = false;
+function mostrarPlacar() {
+    var selected = null;
+    jogosPlacar.forEach(function (g) { if (String(g.id) === placarEscolhido) selected = g; });
+    if (!selected) { el('scoreText').textContent = 'Selecione a partida. O placar pode estar à frente do vídeo.'; return; }
+    var home = selected.home_goals == null ? '–' : selected.home_goals;
+    var away = selected.away_goals == null ? '–' : selected.away_goals;
+    var minute = selected.minute == null ? '' : ' • ' + selected.minute + ' min';
+    el('scoreText').textContent = selected.home + ' ' + home + ' × ' + away + ' ' + selected.away +
+        minute + ' • ' + selected.status + ' • Consultado às ' + new Date(placarAtualizado*1000).toLocaleTimeString() +
+        '. Atualização a cada 20 minutos; pode estar à frente do vídeo.';
+}
+el('scoreGame').onchange = function () { placarEscolhido = this.value; mostrarPlacar(); };
+function buscarPlacares(manual) {
+    if (!itemAtual || itemAtual.tipo !== 'live' || document.hidden || placarOcupado || (!manual && !placarAtivo)) return;
+    placarAtivo = true; placarOcupado = true;
+    el('scoreText').textContent = 'Consultando jogos…';
+    getJSON('/api/placares', function (error, result) {
+        placarOcupado = false;
+        if (error || !result || !result.success || !Array.isArray(result.data)) {
+            el('scoreText').textContent = result && result.message ? result.message : 'Não foi possível carregar os placares.';
+            return;
+        }
+        jogosPlacar = result.data; placarAtualizado = result.updated_at;
+        var select = el('scoreGame'); select.textContent = '';
+        var empty = document.createElement('option'); empty.value = ''; empty.textContent = 'Escolher partida'; select.appendChild(empty);
+        jogosPlacar.forEach(function (g) {
+            var option = document.createElement('option'); option.value = String(g.id);
+            option.textContent = g.home + ' × ' + g.away + ' — ' + g.league;
+            select.appendChild(option);
+        });
+        select.value = placarEscolhido;
+        if (!select.value) placarEscolhido = '';
+        mostrarPlacar();
+        if (!jogosPlacar.length) el('scoreText').textContent = 'Nenhum jogo ao vivo disponível nesta consulta.';
+    });
+}
+setInterval(function () { buscarPlacares(false); }, 1200000);
+
 document.querySelector('.ibo-box').focus();
 
 </script>
