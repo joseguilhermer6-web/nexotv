@@ -113,10 +113,31 @@ video { width: 100%; border-radius: 12px; border: 2px solid #38bdf8; background:
 .play-btn { border: 0; background: #38bdf8; color: #000; padding: 10px; font-weight: bold; cursor: pointer; border-radius: 0 0 10px 10px; }
 .back-btn { background: #1e293b; color: white; border: 1px solid #334155; padding: 10px 20px; border-radius: 8px; cursor: pointer; margin-bottom: 20px; font-weight: bold; }
 #playerStatus { color: #fbbf24; }
+
+* { box-sizing: border-box; }
+button, select, input, a { touch-action: manipulation; }
+button, select, input { min-height: 48px; font-size: 1rem; }
+button:focus, a:focus, select:focus, input:focus, iframe:focus, video:focus { outline: 4px solid #fbbf24; outline-offset: 4px; }
+select, input { background: #1e293b; color: white; padding: 12px; border: 1px solid #64748b; border-radius: 8px; max-width: 100%; }
+.media-card img { height: 150px; object-fit: contain; }
+#embedPlayer { height: 56.25vw; max-height: 478px; }
+#loadMore { margin-top: 24px; }
+.tv-hint { color: #cbd5e1; text-align: center; }
+.video-container:fullscreen { max-width: none; width: 100%; height: 100%; overflow: auto; padding: 20px; background: #080c14; }
+.video-container:fullscreen #embedPlayer, .video-container:fullscreen video { height: 75vh; }
+@media (min-width: 1400px) {
+ body { padding: 40px; font-size: 22px; }
+ button, select, input { font-size: 22px; min-height: 60px; }
+ .video-container { max-width: 1200px; }
+ #embedPlayer { height: 675px; max-height: 675px; }
+ .content-grid { grid-template-columns: repeat(5, 1fr); }
+ .media-card h4 { font-size: 1.1rem; }
+}
 </style>
 </head>
 <body>
 <div class="header"><h1>IBO IPTV Hub v2.0 🌐</h1></div>
+<p class="tv-hint">Use as setas e OK/Enter para navegar. Esc/Voltar retorna.</p>
 <div class="ibo-dashboard" id="mainDashboard">
 <button class="ibo-box live" onclick="mostrarSecao('live')"><span class="icon">📺</span><h2>TV Ao Vivo</h2><p>Canais Operacionais</p></button>
 <button class="ibo-box movies" onclick="mostrarSecao('movie')"><span class="icon">🎬</span><h2>Filmes Anime</h2><p>Filmes Longos</p></button>
@@ -125,6 +146,7 @@ video { width: 100%; border-radius: 12px; border: 2px solid #38bdf8; background:
 </div>
 <div class="video-container" id="videoPlayerContainer">
 <button class="back-btn" onclick="fecharPlayer()">⬅ Fechar Transmissão</button>
+<button class="back-btn" id="fullscreenButton" onclick="telaCheia()">⛶ Tela cheia</button>
 <label for="sourceSelect">Fonte da transmissão:</label>
 <select id="sourceSelect" style="max-width:100%;margin:12px" aria-label="Fonte da transmissão"></select>
 <iframe id="embedPlayer" title="Player do canal" style="display:none;width:100%;aspect-ratio:16/9;border:0" allow="autoplay; fullscreen; picture-in-picture" allowfullscreen></iframe>
@@ -136,8 +158,10 @@ video { width: 100%; border-radius: 12px; border: 2px solid #38bdf8; background:
 <div class="content-section" id="contentSection">
 <button class="back-btn" onclick="voltarProPainel()">⬅ Voltar ao Painel</button>
 <h2 id="sectionTitle" style="color:#38bdf8">Conteúdo</h2>
+<input id="channelSearch" type="search" placeholder="Buscar canal ou anime" aria-label="Buscar canal ou anime">
 <p id="catalogStatus" role="status"></p>
 <div class="content-grid" id="contentGrid"></div>
+<button class="back-btn" id="loadMore" style="display:none" onclick="maisCanais()">Mostrar mais</button>
 </div>
 <script>
 let bancoDados = {{ conteudo | tojson }};
@@ -184,33 +208,50 @@ function mostrarSecao(tipo) {
     el('mainDashboard').style.display = 'none';
     el('contentSection').style.display = 'block';
     el('sectionTitle').textContent = {live:'TV Ao Vivo', movie:'Filmes Anime', series:'Séries', anime:'Animes Hub'}[tipo];
+    limiteCanais = 48;
+    el('channelSearch').value = '';
     renderizarSecao(tipo);
+    el('channelSearch').focus();
     if (tipo === 'live') carregarExternos();
+}
+let limiteCanais = 48;
+el('channelSearch').addEventListener('input', function () { limiteCanais = 48; renderizarSecao(secaoAtual); });
+function maisCanais() {
+    const anterior = limiteCanais;
+    limiteCanais += 48;
+    renderizarSecao(secaoAtual);
+    const botoes = el('contentGrid').querySelectorAll('button');
+    if (botoes[anterior]) botoes[anterior].focus();
 }
 function renderizarSecao(tipo) {
     const grid = el('contentGrid');
-    grid.replaceChildren();
-    bancoDados.filter(item => item.tipo === tipo).forEach(item => {
+    grid.textContent = '';
+    const busca = el('channelSearch').value.toLowerCase().trim();
+    const itens = bancoDados.filter(item => item.tipo === tipo && item.nome.toLowerCase().includes(busca));
+    el('loadMore').style.display = itens.length > limiteCanais ? 'block' : 'none';
+    itens.slice(0, limiteCanais).forEach(item => {
         const card = document.createElement('div'); card.className = 'media-card';
         const img = document.createElement('img'); img.src = item.logo; img.alt = item.nome; img.loading = 'lazy';
         const title = document.createElement('h4'); title.textContent = item.nome;
         const button = document.createElement('button'); button.className = 'play-btn'; button.textContent = '▶ Assistir';
         button.addEventListener('click', () => abrirPlayer(item));
-        card.append(img, title, button); grid.append(card);
+        card.appendChild(img); card.appendChild(title); card.appendChild(button); grid.appendChild(card);
     });
     if (!grid.children.length) grid.textContent = 'Nenhum conteúdo nesta seção.';
 }
 function abrirPlayer(item) {
     itemAtual = item;
+    el('videoPlayerContainer').style.display = 'block';
+    el('fullscreenButton').focus();
     const fontes = Array.isArray(item.fontes) ? item.fontes : [item.fontes];
     const select = el('sourceSelect');
-    select.replaceChildren();
+    select.textContent = '';
     fontes.forEach((fonte, i) => {
         const option = document.createElement('option');
         option.value = fonte;
         try { option.textContent = `Fonte ${i + 1} — ${new URL(fonte).hostname}`; }
         catch (_) { option.textContent = `Fonte ${i + 1}`; }
-        select.append(option);
+        select.appendChild(option);
     });
     reproduzirFonte(item, fontes[0]);
 }
@@ -260,10 +301,55 @@ video.addEventListener('error', () => {
     if (video.getAttribute('src')) el('playerStatus').textContent = 'Não foi possível reproduzir. Verifique o link e o formato do vídeo.';
 });
 video.addEventListener('playing', () => { el('playerStatus').textContent = ''; });
-function fecharPlayer() { limparPlayer(); el('videoPlayerContainer').style.display = 'none'; }
+function fecharPlayer() { limparPlayer(); el('videoPlayerContainer').style.display = 'none'; if (el('contentSection').style.display === 'block') el('channelSearch').focus(); }
 function voltarProPainel() {
     fecharPlayer(); el('contentSection').style.display = 'none'; el('mainDashboard').style.display = 'grid';
+    document.querySelector('.ibo-box').focus();
 }
+
+function telaCheia() {
+    const box = el('videoPlayerContainer');
+    if (document.fullscreenElement && document.exitFullscreen) {
+        document.exitFullscreen(); return;
+    }
+    if (box.requestFullscreen) {
+        const result = box.requestFullscreen();
+        if (result && result.catch) result.catch(function () { el('playerStatus').textContent = 'Use o botão de tela cheia do próprio player.'; });
+    } else {
+        el('playerStatus').textContent = 'Use o botão de tela cheia do próprio player.';
+    }
+}
+// Navigation only handles the parent page; embedded players own their controls.
+document.addEventListener('keydown', function (event) {
+    const active = document.activeElement;
+    const editing = active && (active.tagName === 'INPUT' || active.tagName === 'SELECT');
+    if (!editing && (event.key === 'Escape' || event.keyCode === 461)) {
+        event.preventDefault();
+        if (el('videoPlayerContainer').style.display === 'block') fecharPlayer(); else voltarProPainel();
+        return;
+    }
+    const direction = {ArrowLeft: [-1,0], ArrowRight:[1,0], ArrowUp:[0,-1], ArrowDown:[0,1]}[event.key];
+    if (!direction || editing || (active && active.tagName === 'VIDEO')) return;
+    const candidates = Array.from(document.querySelectorAll('button, a[href], select, input, iframe, video')).filter(function (node) {
+        return !node.disabled && node.getClientRects().length && getComputedStyle(node).visibility !== 'hidden';
+    });
+    if (!candidates.length) return;
+    if (candidates.indexOf(active) < 0) { event.preventDefault(); candidates[0].focus(); return; }
+    const rect = active.getBoundingClientRect();
+    const x = rect.left + rect.width / 2, y = rect.top + rect.height / 2;
+    let best = null, score = Infinity;
+    candidates.forEach(function (node) {
+        if (node === active) return;
+        const r = node.getBoundingClientRect();
+        const dx = r.left + r.width/2 - x, dy = r.top + r.height/2 - y;
+        const forward = dx * direction[0] + dy * direction[1];
+        const sideways = Math.abs(dx * direction[1] + dy * direction[0]);
+        const value = forward + sideways * 3;
+        if (forward > 1 && value < score) { best = node; score = value; }
+    });
+    if (best) { event.preventDefault(); best.focus(); best.scrollIntoView({block:'nearest'}); }
+});
+document.querySelector('.ibo-box').focus();
 </script>
 </body>
 </html>
