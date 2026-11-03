@@ -588,6 +588,7 @@ function buscarPlacares(manual) {
         placarOcupado = false;
         if (error || !result || !result.success || !Array.isArray(result.data)) {
             el('scoreText').textContent = result && result.message ? result.message : 'Não foi possível carregar os placares.';
+            if (result && result.message === 'Consultando jogos. Aguarde alguns segundos.') setTimeout(function () { buscarPlacares(true); }, 5000);
             return;
         }
         jogosPlacar = result.data; placarAtualizado = result.updated_at;
