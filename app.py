@@ -1,6 +1,10 @@
 from flask import Flask, jsonify, render_template_string
 import json
 import os
+import time
+import threading
+import urllib.request
+from urllib.parse import urlsplit
 
 app = Flask(__name__)
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
@@ -20,6 +24,65 @@ def carregar_conteudo():
         return CONTEUDO_INICIAL
     with open(CATALOGO_PATH, encoding='utf-8') as arquivo:
         return json.load(arquivo)
+
+
+RDC_API = 'https://api.reidoscanais.my/channels'
+_rdc_cache = {'until': 0, 'data': []}
+_rdc_lock = threading.Lock()
+
+
+def converter_api(payload):
+    if not isinstance(payload, dict) or payload.get('success') is not True or not isinstance(payload.get('data'), list):
+        raise ValueError('Resposta de catálogo inválida')
+    resultado = []
+    for canal in payload['data']:
+        if not isinstance(canal, dict) or not canal.get('name'):
+            continue
+        fontes = []
+        for fonte in canal.get('embeds', []) or []:
+            if not isinstance(fonte, dict):
+                continue
+            url = fonte.get('embed_url', '')
+            if not isinstance(url, str):
+                continue
+            parsed = urlsplit(url)
+            if parsed.scheme == 'https' and parsed.hostname == 'rdcanais.org' and not parsed.username and not parsed.password and parsed.port in (None, 443):
+                fontes.append(url)
+        if fontes:
+            resultado.append(dict(nome=canal['name'], categoria=canal.get('category', ''),
+                                  tipo='live', logo=canal.get('logo_url', ''), fontes=fontes,
+                                  formato='embed', origem='rdc'))
+    return resultado
+
+
+@app.route('/api/canais-externos')
+def canais_externos():
+    with _rdc_lock:
+        if time.monotonic() < _rdc_cache['until']:
+            return jsonify(_rdc_cache['response'])
+        try:
+            snapshot = os.path.join(BASE_DIR, 'canais_api.json')
+            if os.path.exists(snapshot):
+                with open(snapshot, encoding='utf-8') as arquivo:
+                    payload = json.load(arquivo)
+            else:
+                with urllib.request.urlopen(RDC_API, timeout=8) as resposta:
+                    raw = resposta.read(5_000_001)
+                if len(raw) > 5_000_000:
+                    raise ValueError('Catálogo grande demais')
+                payload = json.loads(raw)
+            dados = converter_api(payload)
+            if not dados:
+                raise ValueError('Catálogo sem players compatíveis')
+            _rdc_cache['data'] = dados
+            response = dict(success=True, data=dados)
+            ttl = 300
+        except Exception as erro:
+            app.logger.warning('Falha no catálogo externo: %s', type(erro).__name__)
+            response = dict(success=False, data=_rdc_cache['data'], message='Catálogo externo indisponível. Os canais locais continuam disponíveis.')
+            ttl = 60
+        _rdc_cache.update(until=time.monotonic() + ttl, response=response)
+        return jsonify(response)
 
 
 HTML_IBO_INTERFACE = r"""
@@ -64,6 +127,8 @@ video { width: 100%; border-radius: 12px; border: 2px solid #38bdf8; background:
 <button class="back-btn" onclick="fecharPlayer()">⬅ Fechar Transmissão</button>
 <label for="sourceSelect">Fonte da transmissão:</label>
 <select id="sourceSelect" style="max-width:100%;margin:12px" aria-label="Fonte da transmissão"></select>
+<iframe id="embedPlayer" title="Player do canal" style="display:none;width:100%;aspect-ratio:16/9;border:0" sandbox="allow-scripts allow-same-origin allow-forms allow-presentation" allow="autoplay; fullscreen; picture-in-picture" allowfullscreen></iframe>
+<a id="externalPlayerLink" target="_blank" rel="noopener noreferrer" style="display:none;color:#38bdf8">Abrir player no site de origem</a>
 <video id="mainVideoPlayer" controls playsinline></video>
 <h3 id="videoTitle" style="color:#38bdf8"></h3>
 <p id="playerStatus" role="status" aria-live="polite"></p>
@@ -71,10 +136,11 @@ video { width: 100%; border-radius: 12px; border: 2px solid #38bdf8; background:
 <div class="content-section" id="contentSection">
 <button class="back-btn" onclick="voltarProPainel()">⬅ Voltar ao Painel</button>
 <h2 id="sectionTitle" style="color:#38bdf8">Conteúdo</h2>
+<p id="catalogStatus" role="status"></p>
 <div class="content-grid" id="contentGrid"></div>
 </div>
 <script>
-const bancoDados = {{ conteudo | tojson }};
+let bancoDados = {{ conteudo | tojson }};
 const el = id => document.getElementById(id);
 const video = el('mainVideoPlayer');
 let secaoAtual = '';
@@ -82,11 +148,35 @@ let hls = null;
 let itemAtual = null;
 el('sourceSelect').addEventListener('change', () => reproduzirFonte(itemAtual, el('sourceSelect').value));
 function limparPlayer() {
+    el('embedPlayer').src = 'about:blank';
+    el('embedPlayer').style.display = 'none';
+    el('externalPlayerLink').style.display = 'none';
+    el('externalPlayerLink').removeAttribute('href');
+    video.style.display = 'block';
     if (hls) { hls.destroy(); hls = null; }
     video.pause();
     video.removeAttribute('src');
     video.load();
     el('playerStatus').textContent = '';
+}
+let externosCarregados = false;
+async function carregarExternos() {
+    if (externosCarregados) return;
+    externosCarregados = true;
+    el('catalogStatus').textContent = 'Buscando catálogo externo…';
+    try {
+        const response = await fetch('/api/canais-externos');
+        if (!response.ok) throw new Error();
+        const result = await response.json();
+        if (!Array.isArray(result.data)) throw new Error();
+        const normalize = name => name.toLowerCase().replace(/[^a-z0-9]/g, '');
+        const nomes = new Set(result.data.map(item => normalize(item.nome)));
+        bancoDados = [...result.data, ...bancoDados.filter(item => item.tipo !== 'live' || !nomes.has(normalize(item.nome)))];
+        el('catalogStatus').textContent = result.success ? 'Players externos carregados.' : result.message;
+        if (secaoAtual === 'live' && el('contentSection').style.display === 'block') renderizarSecao('live');
+    } catch (_) {
+        el('catalogStatus').textContent = 'Catálogo externo indisponível. Os canais locais continuam disponíveis.';
+    }
 }
 function mostrarSecao(tipo) {
     fecharPlayer();
@@ -94,6 +184,10 @@ function mostrarSecao(tipo) {
     el('mainDashboard').style.display = 'none';
     el('contentSection').style.display = 'block';
     el('sectionTitle').textContent = {live:'TV Ao Vivo', movie:'Filmes Anime', series:'Séries', anime:'Animes Hub'}[tipo];
+    renderizarSecao(tipo);
+    if (tipo === 'live') carregarExternos();
+}
+function renderizarSecao(tipo) {
     const grid = el('contentGrid');
     grid.replaceChildren();
     bancoDados.filter(item => item.tipo === tipo).forEach(item => {
@@ -130,6 +224,19 @@ function reproduzirFonte(item, fonte) {
     // Explicit formato supports HLS endpoints without a .m3u8 extension.
     if (location.protocol === 'https:' && url.protocol === 'http:') {
         el('playerStatus').textContent = 'Esta fonte usa HTTP e pode ser bloqueada nesta página HTTPS. Selecione outra fonte.';
+        return;
+    }
+    if (item.formato === 'embed') {
+        if (url.protocol !== 'https:' || url.hostname !== 'rdcanais.org' || url.username || url.password || (url.port && url.port !== '443')) {
+            el('playerStatus').textContent = 'Endereço de player não permitido.'; return;
+        }
+        video.style.display = 'none';
+        el('embedPlayer').src = url.href;
+        el('embedPlayer').style.display = 'block';
+        el('externalPlayerLink').href = url.href;
+        el('externalPlayerLink').style.display = 'block';
+        el('playerStatus').textContent = 'Se o player não abrir aqui, use o link para o site de origem.';
+        el('videoPlayerContainer').scrollIntoView({behavior:'smooth'});
         return;
     }
     const isHls = /\.m3u8$/i.test(url.pathname) || item.formato === 'hls';
