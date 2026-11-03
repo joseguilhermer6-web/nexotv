@@ -728,25 +728,15 @@ function abrirListaEpisodios(item) {
     el('episodeList').textContent = '';
     el('animeDetailsStatus').textContent = 'Carregando episódios…';
     el('officialLinks').textContent = '';
-    if (item.streaming_url && /^https:\/\/www\.crunchyroll\.com\/pt-br\/series\//.test(item.streaming_url)) {
+    if (item.streaming_url && /^https:\/\/pluto\.tv\//.test(item.streaming_url)) {
         var official = document.createElement('a');
         official.href = item.streaming_url; official.target = '_blank'; official.rel = 'noopener noreferrer';
-        official.textContent = '▶ Assistir episódios na Crunchyroll';
+        official.textContent = '▶ Procurar episódios dublados na Pluto TV (grátis com anúncios)';
         official.style.display = 'block'; official.style.padding = '14px'; official.style.color = '#38bdf8';
         el('officialLinks').appendChild(official);
     }
     buscarPaginaAnime();
-    getJSON('/api/anime/' + item.jikan_id + '/streaming', function (error, result) {
-        if (animeSelecionado !== item || error || !result || !result.success) return;
-        var host = el('officialLinks');
-        result.data.forEach(function (entry) {
-            if (!/^https:\/\//i.test(entry.url)) return;
-            var link = document.createElement('a');
-            link.href = entry.url; link.target = '_blank'; link.rel = 'noopener noreferrer';
-            link.textContent = 'Onde assistir: ' + entry.nome;
-            link.style.display = 'block'; link.style.padding = '12px'; host.appendChild(link);
-        });
-    });
+
 }
 function buscarPaginaAnime() {
     var item = animeSelecionado, page = paginaAnime;
