@@ -1,0 +1,1187 @@
+{
+  "success": true,
+  "data": [
+    {
+      "id": "adultswim",
+      "name": "Adult Swim",
+      "category": "Variedades",
+      "logo_url": "https://logocanais.pics/imagens/adultswim.png",
+      "embeds": [
+        {
+          "embed_url": "https://rdcanais.org/adultswim"
+        }
+      ]
+    },
+    {
+      "id": "ae",
+      "name": "A&E",
+      "category": "Documentários",
+      "logo_url": "https://logocanais.pics/imagens/ae.png",
+      "embeds": [
+        {
+          "embed_url": "https://rdcanais.org/ae"
+        }
+      ]
+    },
+    {
+      "id": "agromais",
+      "name": "Agro+",
+      "category": "TV Ao Vivo",
+      "logo_url": "https://logocanais.pics/imagens/agromais.png",
+      "embeds": [
+        {
+          "embed_url": "https://rdcanais.org/agromais"
+        }
+      ]
+    },
+    {
+      "id": "amc",
+      "name": "AMC",
+      "category": "Filmes e Séries",
+      "logo_url": "https://logocanais.pics/imagens/amc.png",
+      "embeds": [
+        {
+          "embed_url": "https://rdcanais.org/amc"
+        }
+      ]
+    },
+    {
+      "id": "animalplanet",
+      "name": "Animal Planet",
+      "category": "Documentários",
+      "logo_url": "https://logocanais.pics/imagens/animalplanet.png",
+      "embeds": [
+        {
+          "embed_url": "https://rdcanais.org/animalplanet"
+        }
+      ]
+    },
+    {
+      "id": "arte1",
+      "name": "Arte1",
+      "category": "Variedades",
+      "logo_url": "https://logocanais.pics/imagens/arte1.png",
+      "embeds": [
+        {
+          "embed_url": "https://rdcanais.org/arte1"
+        }
+      ]
+    },
+    {
+      "id": "axn",
+      "name": "AXN",
+      "category": "Filmes e Séries",
+      "logo_url": "https://logocanais.pics/imagens/axn.png",
+      "embeds": [
+        {
+          "embed_url": "https://rdcanais.org/axn"
+        }
+      ]
+    },
+    {
+      "id": "band",
+      "name": "Band",
+      "category": "TV Aberta",
+      "logo_url": "https://logocanais.pics/imagens/band.png",
+      "embeds": [
+        {
+          "embed_url": "https://rdcanais.org/band"
+        }
+      ]
+    },
+    {
+      "id": "bis",
+      "name": "BIS",
+      "category": "Variedades",
+      "logo_url": "https://logocanais.pics/imagens/bis.png",
+      "embeds": [
+        {
+          "embed_url": "https://rdcanais.org/bis"
+        }
+      ]
+    },
+    {
+      "id": "canalbrasil",
+      "name": "Canal Brasil",
+      "category": "Filmes e Séries",
+      "logo_url": "https://logocanais.pics/imagens/canalbrasil.png",
+      "embeds": [
+        {
+          "embed_url": "https://rdcanais.org/canalbrasil"
+        }
+      ]
+    },
+    {
+      "id": "canaloff",
+      "name": "Canal OFF",
+      "category": "Esportes",
+      "logo_url": "https://logocanais.pics/imagens/canaloff.png",
+      "embeds": [
+        {
+          "embed_url": "https://rdcanais.org/canaloff"
+        }
+      ]
+    },
+    {
+      "id": "cartoonnetwork",
+      "name": "Cartoon Network",
+      "category": "Infantil",
+      "logo_url": "https://logocanais.pics/imagens/cartoonnetwork.webp",
+      "embeds": [
+        {
+          "embed_url": "https://rdcanais.org/cartoonnetwork"
+        }
+      ]
+    },
+    {
+      "id": "cartoonito",
+      "name": "Cartoonito",
+      "category": "Infantil",
+      "logo_url": "https://logocanais.pics/imagens/cartoonito.webp",
+      "embeds": [
+        {
+          "embed_url": "https://rdcanais.org/cartoonito"
+        }
+      ]
+    },
+    {
+      "id": "cazetv",
+      "name": "Caze TV",
+      "category": "Esportes",
+      "logo_url": "https://logocanais.pics/imagens/cazetv.webp",
+      "embeds": [
+        {
+          "embed_url": "https://rdcanais.org/cazetv"
+        }
+      ]
+    },
+    {
+      "id": "cazetv2",
+      "name": "Caze TV 2",
+      "category": "Esportes",
+      "logo_url": "https://logocanais.pics/imagens/cazetv.webp",
+      "embeds": [
+        {
+          "embed_url": "https://rdcanais.org/cazetv2"
+        }
+      ]
+    },
+    {
+      "id": "cazetv3",
+      "name": "Caze TV 3",
+      "category": "Esportes",
+      "logo_url": "https://logocanais.pics/imagens/cazetv.webp",
+      "embeds": [
+        {
+          "embed_url": "https://rdcanais.org/cazetv3"
+        }
+      ]
+    },
+    {
+      "id": "cinemax",
+      "name": "Cinemax",
+      "category": "Filmes e Séries",
+      "logo_url": "https://logocanais.pics/imagens/cinemax.png",
+      "embeds": [
+        {
+          "embed_url": "https://rdcanais.org/cinemax"
+        }
+      ]
+    },
+    {
+      "id": "cnnbrasil",
+      "name": "CNN Brasil",
+      "category": "Notícias",
+      "logo_url": "https://logocanais.pics/imagens/cnnbrasil.png",
+      "embeds": [
+        {
+          "embed_url": "https://rdcanais.org/cnnbrasil"
+        },
+        {
+          "embed_url": "https://rdcanais.org/cnnbrasilalternativo"
+        }
+      ]
+    },
+    {
+      "id": "curta",
+      "name": "Curta!",
+      "category": "Documentários",
+      "logo_url": "https://logocanais.pics/imagens/curta.png",
+      "embeds": [
+        {
+          "embed_url": "https://rdcanais.org/curta"
+        }
+      ]
+    },
+    {
+      "id": "discoverychannel",
+      "name": "Discovery Channel",
+      "category": "Documentários",
+      "logo_url": "https://logocanais.pics/imagens/discoverychannel.webp",
+      "embeds": [
+        {
+          "embed_url": "https://rdcanais.org/discoverychannel"
+        }
+      ]
+    },
+    {
+      "id": "discoveryheh",
+      "name": "Discovery Home e Saúde",
+      "category": "TV Ao Vivo",
+      "logo_url": "https://logocanais.pics/imagens/discoveryheh.webp",
+      "embeds": [
+        {
+          "embed_url": "https://rdcanais.org/discoveryheh"
+        }
+      ]
+    },
+    {
+      "id": "discoveryid",
+      "name": "Discovery ID",
+      "category": "Documentários",
+      "logo_url": "https://logocanais.pics/imagens/discoveryid.png",
+      "embeds": [
+        {
+          "embed_url": "https://rdcanais.org/discoveryid"
+        }
+      ]
+    },
+    {
+      "id": "discoverykids",
+      "name": "Discovery Kids",
+      "category": "Infantil",
+      "logo_url": "https://logocanais.pics/imagens/discoverykids.png",
+      "embeds": [
+        {
+          "embed_url": "https://rdcanais.org/discoverykids"
+        }
+      ]
+    },
+    {
+      "id": "discoveryscience",
+      "name": "Discovery Science",
+      "category": "Documentários",
+      "logo_url": "https://logocanais.pics/imagens/discoveryscience.webp",
+      "embeds": [
+        {
+          "embed_url": "https://rdcanais.org/discoveryscience"
+        }
+      ]
+    },
+    {
+      "id": "discoveryturbo",
+      "name": "Discovery Turbo",
+      "category": "Documentários",
+      "logo_url": "https://logocanais.pics/imagens/discoveryturbo.png",
+      "embeds": [
+        {
+          "embed_url": "https://rdcanais.org/discoveryturbo"
+        }
+      ]
+    },
+    {
+      "id": "e",
+      "name": "E!",
+      "category": "Variedades",
+      "logo_url": "https://logocanais.pics/imagens/e.png",
+      "embeds": [
+        {
+          "embed_url": "https://rdcanais.org/e"
+        }
+      ]
+    },
+    {
+      "id": "fashiontv",
+      "name": "Fashion TV",
+      "category": "Variedades",
+      "logo_url": "https://logocanais.pics/imagens/fashiontv.png",
+      "embeds": [
+        {
+          "embed_url": "https://rdcanais.org/fashiontv"
+        }
+      ]
+    },
+    {
+      "id": "fishtv",
+      "name": "Fish TV",
+      "category": "Esportes",
+      "logo_url": "https://logocanais.pics/imagens/fishtv.png",
+      "embeds": [
+        {
+          "embed_url": "https://rdcanais.org/fishtv"
+        }
+      ]
+    },
+    {
+      "id": "foodnetwork",
+      "name": "Food Network",
+      "category": "Variedades",
+      "logo_url": "https://logocanais.pics/imagens/foodnetwork.png",
+      "embeds": [
+        {
+          "embed_url": "https://rdcanais.org/foodnetwork"
+        }
+      ]
+    },
+    {
+      "id": "futura",
+      "name": "Futura",
+      "category": "TV Aberta",
+      "logo_url": "https://logocanais.pics/imagens/futura.png",
+      "embeds": [
+        {
+          "embed_url": "https://rdcanais.org/futura"
+        }
+      ]
+    },
+    {
+      "id": "globo",
+      "name": "Globo",
+      "category": "TV Aberta",
+      "logo_url": "https://logocanais.pics/imagens/tvglobo.png",
+      "embeds": [
+        {
+          "embed_url": "https://rdcanais.org/globorj"
+        },
+        {
+          "embed_url": "https://rdcanais.org/globosp"
+        },
+        {
+          "embed_url": "https://rdcanais.org/globomg"
+        },
+        {
+          "embed_url": "https://rdcanais.org/globoes"
+        },
+        {
+          "embed_url": "https://rdcanais.org/globors"
+        },
+        {
+          "embed_url": "https://rdcanais.org/globosc"
+        },
+        {
+          "embed_url": "https://rdcanais.org/globopr"
+        },
+        {
+          "embed_url": "https://rdcanais.org/globope"
+        },
+        {
+          "embed_url": "https://rdcanais.org/globoba"
+        },
+        {
+          "embed_url": "https://rdcanais.org/globoce"
+        },
+        {
+          "embed_url": "https://rdcanais.org/globopi"
+        },
+        {
+          "embed_url": "https://rdcanais.org/globoma"
+        },
+        {
+          "embed_url": "https://rdcanais.org/globorn"
+        },
+        {
+          "embed_url": "https://rdcanais.org/globopb"
+        },
+        {
+          "embed_url": "https://rdcanais.org/globodf"
+        },
+        {
+          "embed_url": "https://rdcanais.org/globogo"
+        },
+        {
+          "embed_url": "https://rdcanais.org/globoam"
+        },
+        {
+          "embed_url": "https://rdcanais.org/globopa"
+        },
+        {
+          "embed_url": "https://rdcanais.org/globoac"
+        },
+        {
+          "embed_url": "https://rdcanais.org/globoal"
+        },
+        {
+          "embed_url": "https://rdcanais.org/globoap"
+        },
+        {
+          "embed_url": "https://rdcanais.org/globomt"
+        },
+        {
+          "embed_url": "https://rdcanais.org/globoms"
+        },
+        {
+          "embed_url": "https://rdcanais.org/globoro"
+        },
+        {
+          "embed_url": "https://rdcanais.org/globorr"
+        },
+        {
+          "embed_url": "https://rdcanais.org/globose"
+        },
+        {
+          "embed_url": "https://rdcanais.org/globoto"
+        }
+      ]
+    },
+    {
+      "id": "globonews",
+      "name": "GloboNews",
+      "category": "Notícias",
+      "logo_url": "https://logocanais.pics/imagens/globonews.png",
+      "embeds": [
+        {
+          "embed_url": "https://rdcanais.org/globonews"
+        }
+      ]
+    },
+    {
+      "id": "globoplaynovelas",
+      "name": "Globoplay Novelas",
+      "category": "Filmes e Séries",
+      "logo_url": "https://logocanais.pics/imagens/globoplaynovelas.png",
+      "embeds": [
+        {
+          "embed_url": "https://rdcanais.org/globoplaynovelas"
+        }
+      ]
+    },
+    {
+      "id": "gloob",
+      "name": "Gloob",
+      "category": "Infantil",
+      "logo_url": "https://logocanais.pics/imagens/gloob.png",
+      "embeds": [
+        {
+          "embed_url": "https://rdcanais.org/gloob"
+        }
+      ]
+    },
+    {
+      "id": "gloobinho",
+      "name": "Gloobinho",
+      "category": "Infantil",
+      "logo_url": "https://logocanais.pics/imagens/gloobinho.png",
+      "embeds": [
+        {
+          "embed_url": "https://rdcanais.org/gloobinho"
+        }
+      ]
+    },
+    {
+      "id": "gnt",
+      "name": "GNT",
+      "category": "Variedades",
+      "logo_url": "https://logocanais.pics/imagens/gnt.png",
+      "embeds": [
+        {
+          "embed_url": "https://rdcanais.org/gnt"
+        }
+      ]
+    },
+    {
+      "id": "hbo",
+      "name": "HBO",
+      "category": "Filmes e Séries",
+      "logo_url": "https://logocanais.pics/imagens/hbo.png",
+      "embeds": [
+        {
+          "embed_url": "https://rdcanais.org/hbo"
+        }
+      ]
+    },
+    {
+      "id": "hbo2",
+      "name": "HBO 2",
+      "category": "Filmes e Séries",
+      "logo_url": "https://logocanais.pics/imagens/hbo2.png",
+      "embeds": [
+        {
+          "embed_url": "https://rdcanais.org/hbo2"
+        }
+      ]
+    },
+    {
+      "id": "hbofamily",
+      "name": "HBO Family",
+      "category": "Filmes e Séries",
+      "logo_url": "https://logocanais.pics/imagens/hbofamily.png",
+      "embeds": [
+        {
+          "embed_url": "https://rdcanais.org/hbofamily"
+        }
+      ]
+    },
+    {
+      "id": "hbopop",
+      "name": "HBO Pop",
+      "category": "Filmes e Séries",
+      "logo_url": "https://logocanais.pics/imagens/hbopop.webp",
+      "embeds": [
+        {
+          "embed_url": "https://rdcanais.org/hbopop"
+        }
+      ]
+    },
+    {
+      "id": "hbosignature",
+      "name": "HBO Signature",
+      "category": "Filmes e Séries",
+      "logo_url": "https://logocanais.pics/imagens/hbosignature.png",
+      "embeds": [
+        {
+          "embed_url": "https://rdcanais.org/hbosignature"
+        }
+      ]
+    },
+    {
+      "id": "hboxtreme",
+      "name": "HBO Xtreme",
+      "category": "Filmes e Séries",
+      "logo_url": "https://logocanais.pics/imagens/hboxtreme.png",
+      "embeds": [
+        {
+          "embed_url": "https://rdcanais.org/hboxtreme"
+        }
+      ]
+    },
+    {
+      "id": "hboplus",
+      "name": "HBO+",
+      "category": "Filmes e Séries",
+      "logo_url": "https://logocanais.pics/imagens/hboplus.png",
+      "embeds": [
+        {
+          "embed_url": "https://rdcanais.org/hboplus"
+        }
+      ]
+    },
+    {
+      "id": "hgtv",
+      "name": "HGTV",
+      "category": "Variedades",
+      "logo_url": "https://logocanais.pics/imagens/hgtv.png",
+      "embeds": [
+        {
+          "embed_url": "https://rdcanais.org/hgtv"
+        }
+      ]
+    },
+    {
+      "id": "history",
+      "name": "History",
+      "category": "Documentários",
+      "logo_url": "https://logocanais.pics/imagens/history.webp",
+      "embeds": [
+        {
+          "embed_url": "https://rdcanais.org/history"
+        }
+      ]
+    },
+    {
+      "id": "history2",
+      "name": "History 2",
+      "category": "Documentários",
+      "logo_url": "https://logocanais.pics/imagens/history2.png",
+      "embeds": [
+        {
+          "embed_url": "https://rdcanais.org/history2"
+        }
+      ]
+    },
+    {
+      "id": "jpnews",
+      "name": "Jovem Pan News",
+      "category": "Notícias",
+      "logo_url": "https://logocanais.pics/imagens/jpnews.webp",
+      "embeds": [
+        {
+          "embed_url": "https://rdcanais.org/jpnews"
+        }
+      ]
+    },
+    {
+      "id": "lifetime",
+      "name": "Lifetime",
+      "category": "Filmes e Séries",
+      "logo_url": "https://logocanais.pics/imagens/lifetime.png",
+      "embeds": [
+        {
+          "embed_url": "https://rdcanais.org/lifetime"
+        }
+      ]
+    },
+    {
+      "id": "megapix",
+      "name": "Megapix",
+      "category": "Filmes e Séries",
+      "logo_url": "https://logocanais.pics/imagens/megapix.png",
+      "embeds": [
+        {
+          "embed_url": "https://rdcanais.org/megapix"
+        }
+      ]
+    },
+    {
+      "id": "modoviagem",
+      "name": "Modo Viagem",
+      "category": "Variedades",
+      "logo_url": "https://logocanais.pics/imagens/modoviagem.svg",
+      "embeds": [
+        {
+          "embed_url": "https://rdcanais.org/modoviagem"
+        }
+      ]
+    },
+    {
+      "id": "multishow",
+      "name": "Multishow",
+      "category": "Variedades",
+      "logo_url": "https://logocanais.pics/imagens/multishow.png",
+      "embeds": [
+        {
+          "embed_url": "https://rdcanais.org/multishow"
+        }
+      ]
+    },
+    {
+      "id": "nsports",
+      "name": "NSports",
+      "category": "Esportes",
+      "logo_url": "https://logocanais.pics/imagens/nsports.png",
+      "embeds": [
+        {
+          "embed_url": "https://rdcanais.org/nsports"
+        }
+      ]
+    },
+    {
+      "id": "paramountplus",
+      "name": "Paramount+",
+      "category": "Esportes",
+      "logo_url": "https://logocanais.pics/imagens/paramountplus.png",
+      "embeds": [
+        {
+          "embed_url": "https://rdcanais.org/paramountplus"
+        }
+      ]
+    },
+    {
+      "id": "paramountplus2",
+      "name": "Paramount+ 2",
+      "category": "Esportes",
+      "logo_url": "https://logocanais.pics/imagens/paramountplus.png",
+      "embeds": [
+        {
+          "embed_url": "https://rdcanais.org/paramountplus2"
+        }
+      ]
+    },
+    {
+      "id": "paramountplus3",
+      "name": "Paramount+ 3",
+      "category": "Esportes",
+      "logo_url": "https://logocanais.pics/imagens/paramountplus.png",
+      "embeds": [
+        {
+          "embed_url": "https://rdcanais.org/paramountplus3"
+        }
+      ]
+    },
+    {
+      "id": "paramountplus4",
+      "name": "Paramount+ 4",
+      "category": "Esportes",
+      "logo_url": "https://logocanais.pics/imagens/paramountplus.png",
+      "embeds": [
+        {
+          "embed_url": "https://rdcanais.org/paramountplus4"
+        }
+      ]
+    },
+    {
+      "id": "premiereclubes",
+      "name": "Premiere Clubes",
+      "category": "Esportes",
+      "logo_url": "https://logocanais.pics/imagens/premiere.png",
+      "embeds": [
+        {
+          "embed_url": "https://rdcanais.org/premiereclubes"
+        },
+        {
+          "embed_url": "https://rdcanais.org/premiereclubesalternativo"
+        }
+      ]
+    },
+    {
+      "id": "premiere2",
+      "name": "Premiere 2",
+      "category": "Esportes",
+      "logo_url": "https://logocanais.pics/imagens/premiere.png",
+      "embeds": [
+        {
+          "embed_url": "https://rdcanais.org/premiere2"
+        },
+        {
+          "embed_url": "https://rdcanais.org/premiere2alternativo"
+        }
+      ]
+    },
+    {
+      "id": "premiere3",
+      "name": "Premiere 3",
+      "category": "Esportes",
+      "logo_url": "https://logocanais.pics/imagens/premiere.png",
+      "embeds": [
+        {
+          "embed_url": "https://rdcanais.org/premiere3"
+        },
+        {
+          "embed_url": "https://rdcanais.org/premiere3alternativo"
+        }
+      ]
+    },
+    {
+      "id": "premiere4",
+      "name": "Premiere 4",
+      "category": "Esportes",
+      "logo_url": "https://logocanais.pics/imagens/premiere.png",
+      "embeds": [
+        {
+          "embed_url": "https://rdcanais.org/premiere4"
+        },
+        {
+          "embed_url": "https://rdcanais.org/premiere4alternativo"
+        }
+      ]
+    },
+    {
+      "id": "premiere5",
+      "name": "Premiere 5",
+      "category": "Esportes",
+      "logo_url": "https://logocanais.pics/imagens/premiere.png",
+      "embeds": [
+        {
+          "embed_url": "https://rdcanais.org/premiere5"
+        },
+        {
+          "embed_url": "https://rdcanais.org/premiere5alternativo"
+        }
+      ]
+    },
+    {
+      "id": "premiere6",
+      "name": "Premiere 6",
+      "category": "Esportes",
+      "logo_url": "https://logocanais.pics/imagens/premiere.png",
+      "embeds": [
+        {
+          "embed_url": "https://rdcanais.org/premiere6"
+        },
+        {
+          "embed_url": "https://rdcanais.org/premiere6alternativo"
+        }
+      ]
+    },
+    {
+      "id": "premiere7",
+      "name": "Premiere 7",
+      "category": "Esportes",
+      "logo_url": "https://logocanais.pics/imagens/premiere.png",
+      "embeds": [
+        {
+          "embed_url": "https://rdcanais.org/premiere7"
+        },
+        {
+          "embed_url": "https://rdcanais.org/premiere7alternativo"
+        }
+      ]
+    },
+    {
+      "id": "premiere8",
+      "name": "Premiere 8",
+      "category": "Esportes",
+      "logo_url": "https://logocanais.pics/imagens/premiere.png",
+      "embeds": [
+        {
+          "embed_url": "https://rdcanais.org/premiere8"
+        },
+        {
+          "embed_url": "https://rdcanais.org/premiere8alternativo"
+        }
+      ]
+    },
+    {
+      "id": "record",
+      "name": "Record",
+      "category": "TV Aberta",
+      "logo_url": "https://logocanais.pics/imagens/record.png",
+      "embeds": [
+        {
+          "embed_url": "https://rdcanais.org/record"
+        }
+      ]
+    },
+    {
+      "id": "recordnews",
+      "name": "Record News",
+      "category": "Notícias",
+      "logo_url": "https://logocanais.pics/imagens/recordnews.png",
+      "embeds": [
+        {
+          "embed_url": "https://rdcanais.org/recordnews"
+        }
+      ]
+    },
+    {
+      "id": "redetv",
+      "name": "RedeTV!",
+      "category": "TV Aberta",
+      "logo_url": "https://logocanais.pics/imagens/redetv.png",
+      "embeds": [
+        {
+          "embed_url": "https://rdcanais.org/redetv"
+        }
+      ]
+    },
+    {
+      "id": "saborearte",
+      "name": "Sabor e Arte",
+      "category": "TV Ao Vivo",
+      "logo_url": "https://logocanais.pics/imagens/saborearte.png",
+      "embeds": [
+        {
+          "embed_url": "https://rdcanais.org/saborearte"
+        }
+      ]
+    },
+    {
+      "id": "sbt",
+      "name": "SBT",
+      "category": "TV Aberta",
+      "logo_url": "https://logocanais.pics/imagens/sbt.png",
+      "embeds": [
+        {
+          "embed_url": "https://rdcanais.org/sbt"
+        }
+      ]
+    },
+    {
+      "id": "sonychannel",
+      "name": "Sony Channel",
+      "category": "Filmes e Séries",
+      "logo_url": "https://logocanais.pics/imagens/sonychannel.png",
+      "embeds": [
+        {
+          "embed_url": "https://rdcanais.org/sonychannel"
+        }
+      ]
+    },
+    {
+      "id": "sonymovies",
+      "name": "Sony Movies",
+      "category": "Filmes e Séries",
+      "logo_url": "https://logocanais.pics/imagens/sonymovies.png",
+      "embeds": [
+        {
+          "embed_url": "https://rdcanais.org/sonymovies"
+        }
+      ]
+    },
+    {
+      "id": "space",
+      "name": "Space",
+      "category": "Filmes e Séries",
+      "logo_url": "https://logocanais.pics/imagens/space.png",
+      "embeds": [
+        {
+          "embed_url": "https://rdcanais.org/space"
+        }
+      ]
+    },
+    {
+      "id": "sportv",
+      "name": "SporTV",
+      "category": "Esportes",
+      "logo_url": "https://logocanais.pics/imagens/sportv.png",
+      "embeds": [
+        {
+          "embed_url": "https://rdcanais.org/sportv"
+        },
+        {
+          "embed_url": "https://rdcanais.org/sportvalternativo"
+        }
+      ]
+    },
+    {
+      "id": "sportv2",
+      "name": "SporTV 2",
+      "category": "Esportes",
+      "logo_url": "https://logocanais.pics/imagens/sportv.png",
+      "embeds": [
+        {
+          "embed_url": "https://rdcanais.org/sportv2"
+        },
+        {
+          "embed_url": "https://rdcanais.org/sportv2alternativo"
+        }
+      ]
+    },
+    {
+      "id": "sportv3",
+      "name": "SporTV 3",
+      "category": "Esportes",
+      "logo_url": "https://logocanais.pics/imagens/sportv.png",
+      "embeds": [
+        {
+          "embed_url": "https://rdcanais.org/sportv3"
+        },
+        {
+          "embed_url": "https://rdcanais.org/sportv3alternativo"
+        }
+      ]
+    },
+    {
+      "id": "sportynet",
+      "name": "SportyNet",
+      "category": "Esportes",
+      "logo_url": "https://logocanais.pics/imagens/sportynet.avif",
+      "embeds": [
+        {
+          "embed_url": "https://rdcanais.org/sportynet"
+        }
+      ]
+    },
+    {
+      "id": "sportynetplus",
+      "name": "SportyNet+ 1",
+      "category": "Esportes",
+      "logo_url": "https://logocanais.pics/imagens/sportynet.avif",
+      "embeds": [
+        {
+          "embed_url": "https://rdcanais.org/sportynetplus"
+        }
+      ]
+    },
+    {
+      "id": "sportynetplus2",
+      "name": "SportyNet+ 2",
+      "category": "Esportes",
+      "logo_url": "https://logocanais.pics/imagens/sportynet.avif",
+      "embeds": [
+        {
+          "embed_url": "https://rdcanais.org/sportynetplus2"
+        }
+      ]
+    },
+    {
+      "id": "sportynetplus3",
+      "name": "SportyNet+ 3",
+      "category": "Esportes",
+      "logo_url": "https://logocanais.pics/imagens/sportynet.avif",
+      "embeds": [
+        {
+          "embed_url": "https://rdcanais.org/sportynetplus3"
+        }
+      ]
+    },
+    {
+      "id": "studiouniversal",
+      "name": "Studio Universal",
+      "category": "Filmes e Séries",
+      "logo_url": "https://logocanais.pics/imagens/studiouniversal.png",
+      "embeds": [
+        {
+          "embed_url": "https://rdcanais.org/studiouniversal"
+        }
+      ]
+    },
+    {
+      "id": "telecineaction",
+      "name": "Telecine Action",
+      "category": "Filmes e Séries",
+      "logo_url": "https://logocanais.pics/imagens/telecineaction.png",
+      "embeds": [
+        {
+          "embed_url": "https://rdcanais.org/telecineaction"
+        }
+      ]
+    },
+    {
+      "id": "telecinecult",
+      "name": "Telecine Cult",
+      "category": "Filmes e Séries",
+      "logo_url": "https://logocanais.pics/imagens/telecinecult.png",
+      "embeds": [
+        {
+          "embed_url": "https://rdcanais.org/telecinecult"
+        }
+      ]
+    },
+    {
+      "id": "telecinefun",
+      "name": "Telecine Fun",
+      "category": "Filmes e Séries",
+      "logo_url": "https://logocanais.pics/imagens/telecinefun.png",
+      "embeds": [
+        {
+          "embed_url": "https://rdcanais.org/telecinefun"
+        }
+      ]
+    },
+    {
+      "id": "telecinepipoca",
+      "name": "Telecine Pipoca",
+      "category": "Filmes e Séries",
+      "logo_url": "https://logocanais.pics/imagens/telecinepipoca.png",
+      "embeds": [
+        {
+          "embed_url": "https://rdcanais.org/telecinepipoca"
+        }
+      ]
+    },
+    {
+      "id": "telecinepremium",
+      "name": "Telecine Premium",
+      "category": "Filmes e Séries",
+      "logo_url": "https://logocanais.pics/imagens/telecinepremium.png",
+      "embeds": [
+        {
+          "embed_url": "https://rdcanais.org/telecinepremium"
+        }
+      ]
+    },
+    {
+      "id": "telecinetouch",
+      "name": "Telecine Touch",
+      "category": "Filmes e Séries",
+      "logo_url": "https://logocanais.pics/imagens/telecinetouch.png",
+      "embeds": [
+        {
+          "embed_url": "https://rdcanais.org/telecinetouch"
+        }
+      ]
+    },
+    {
+      "id": "tlc",
+      "name": "TLC",
+      "category": "Variedades",
+      "logo_url": "https://logocanais.pics/imagens/tlc.png",
+      "embeds": [
+        {
+          "embed_url": "https://rdcanais.org/tlc"
+        }
+      ]
+    },
+    {
+      "id": "tnt",
+      "name": "TNT",
+      "category": "Filmes e Séries",
+      "logo_url": "https://logocanais.pics/imagens/tnt.png",
+      "embeds": [
+        {
+          "embed_url": "https://rdcanais.org/tnt"
+        }
+      ]
+    },
+    {
+      "id": "tntnovelas",
+      "name": "TNT Novelas",
+      "category": "Filmes e Séries",
+      "logo_url": "https://logocanais.pics/imagens/tntnovelas.png",
+      "embeds": [
+        {
+          "embed_url": "https://rdcanais.org/tntnovelas"
+        }
+      ]
+    },
+    {
+      "id": "tntseries",
+      "name": "TNT Séries",
+      "category": "Filmes e Séries",
+      "logo_url": "https://logocanais.pics/imagens/tntseries.png",
+      "embeds": [
+        {
+          "embed_url": "https://rdcanais.org/tntseries"
+        }
+      ]
+    },
+    {
+      "id": "tooncast",
+      "name": "Tooncast",
+      "category": "Infantil",
+      "logo_url": "https://logocanais.pics/imagens/tooncast.png",
+      "embeds": [
+        {
+          "embed_url": "https://rdcanais.org/tooncast"
+        }
+      ]
+    },
+    {
+      "id": "aparecida",
+      "name": "TV Aparecida",
+      "category": "TV Aberta",
+      "logo_url": "https://logocanais.pics/imagens/aparecida.png",
+      "embeds": [
+        {
+          "embed_url": "https://rdcanais.org/aparecida"
+        }
+      ]
+    },
+    {
+      "id": "tvbrasil",
+      "name": "TV Brasil",
+      "category": "TV Aberta",
+      "logo_url": "https://logocanais.pics/imagens/tvbrasil.png",
+      "embeds": [
+        {
+          "embed_url": "https://rdcanais.org/tvbrasil"
+        }
+      ]
+    },
+    {
+      "id": "tvcultura",
+      "name": "TV Cultura",
+      "category": "TV Aberta",
+      "logo_url": "https://logocanais.pics/imagens/tvcultura.png",
+      "embeds": [
+        {
+          "embed_url": "https://rdcanais.org/tvcultura"
+        }
+      ]
+    },
+    {
+      "id": "universaltv",
+      "name": "Universal TV",
+      "category": "Filmes e Séries",
+      "logo_url": "https://logocanais.pics/imagens/universaltv.png",
+      "embeds": [
+        {
+          "embed_url": "https://rdcanais.org/universaltv"
+        }
+      ]
+    },
+    {
+      "id": "warnertv",
+      "name": "Warner TV",
+      "category": "TV Ao Vivo",
+      "logo_url": "https://logocanais.pics/imagens/warnertv.png",
+      "embeds": [
+        {
+          "embed_url": "https://rdcanais.org/warnertv"
+        }
+      ]
+    },
+    {
+      "id": "woohoo",
+      "name": "WooHoo",
+      "category": "Esportes",
+      "logo_url": "https://logocanais.pics/imagens/woohoo.png",
+      "embeds": [
+        {
+          "embed_url": "https://rdcanais.org/woohoo"
+        }
+      ]
+    }
+  ],
+  "total": 97
+}
