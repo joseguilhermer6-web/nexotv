@@ -5925,7 +5925,8 @@
     "tipo": "anime",
     "logo": "https://wikimedia.org",
     "fontes": "https://googleapis.com",
-    "jikan_id": 1735
+    "jikan_id": 1735,
+    "streaming_url": "https://www.crunchyroll.com/pt-br/series/GYQ4MW246/naruto-shippuden"
   },
   {
     "nome": "One Piece - Wano Arc",
@@ -5976,7 +5977,8 @@
     "logo": "",
     "fontes": [],
     "jikan_id": 20,
-    "episodios": []
+    "episodios": [],
+    "streaming_url": "https://www.crunchyroll.com/pt-br/series/GY9PJ5KWR/naruto"
   },
   {
     "nome": "Hunter × Hunter (2011)",
@@ -5985,7 +5987,8 @@
     "logo": "",
     "fontes": [],
     "jikan_id": 11061,
-    "episodios": []
+    "episodios": [],
+    "streaming_url": "https://www.crunchyroll.com/pt-br/series/GY3VKX1MR/hunter-x-hunter"
   },
   {
     "nome": "Hunter × Hunter (1999)",
