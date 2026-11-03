@@ -728,6 +728,13 @@ function abrirListaEpisodios(item) {
     el('episodeList').textContent = '';
     el('animeDetailsStatus').textContent = 'Carregando episódios…';
     el('officialLinks').textContent = '';
+    if (item.streaming_url && /^https:\/\/www\.crunchyroll\.com\/pt-br\/series\//.test(item.streaming_url)) {
+        var official = document.createElement('a');
+        official.href = item.streaming_url; official.target = '_blank'; official.rel = 'noopener noreferrer';
+        official.textContent = '▶ Assistir episódios na Crunchyroll';
+        official.style.display = 'block'; official.style.padding = '14px'; official.style.color = '#38bdf8';
+        el('officialLinks').appendChild(official);
+    }
     buscarPaginaAnime();
     getJSON('/api/anime/' + item.jikan_id + '/streaming', function (error, result) {
         if (animeSelecionado !== item || error || !result || !result.success) return;
